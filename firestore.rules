@@ -1,0 +1,33 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    match /users/{userId} {
+      // Registration: create own document
+      allow create: if request.auth != null && request.auth.uid == userId;
+
+      // Read own document
+      allow read: if request.auth != null && request.auth.uid == userId;
+
+      // Update own document, but BLOCK VIP fields (only server can write these)
+      allow update: if request.auth != null
+                    && request.auth.uid == userId
+                    && !request.resource.data.diff(resource.data).affectedKeys()
+                        .hasAny(['isVip', 'vipExpiry', 'vipActivatedAt', 'vipChain']);
+
+      allow delete: if false;
+
+      // History subcollection
+      match /history/{docId} {
+        allow create, read: if request.auth != null && request.auth.uid == userId;
+        allow update, delete: if false;
+      }
+    }
+
+    // Default deny
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

@@ -1,6 +1,6 @@
 {
   "name": "miupack-functions",
-  "description": "MiuPack Firebase Cloud Functions — Gemini API proxy",
+  "description": "MiuPack Firebase Cloud Functions — Gemini API proxy + VIP verification",
   "private": true,
   "engines": { "node": "20" },
   "main": "index.js",

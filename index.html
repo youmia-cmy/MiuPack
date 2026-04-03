@@ -2335,91 +2335,50 @@ async function handlePaidClick(){
   }
 }
 
-// --- On-chain Verification ---
+// --- VIP Payment Verification (server-side) ---
+// All on-chain verification + VIP write now happens in Cloud Function.
+// Client only sends chain + paymentInitTime; server does the rest.
+const VIP_VERIFY_URL='https://us-central1-miupack.cloudfunctions.net/verifyVipPayment';
+
 async function verifyPayment(){
   const statusEl=document.getElementById('payStatus');
   const lang=currentLang;
-  let verified=false;
-  if(selectedChain==='bsc'){
-    verified=await verifyBSCPayment();
-  }else{
-    verified=await verifySolPayment();
-  }
-  if(verified){
-    statusEl.textContent=lang==='zh'?'支付成功！正在升级 VIP...':'Payment verified! Upgrading to VIP...';
-    statusEl.className='pay-status success';
-    await upgradeToVip();
-    setTimeout(()=>{
-      closeVipModal();
-      alert(lang==='zh'?'恭喜！你已成为 VIP 会员，所有功能无限使用':'Congratulations! You are now a VIP member with unlimited access');
-    },1200);
-    return true;
-  }
-  return false;
-}
-
-async function verifyBSCPayment(){
-  try{
-    const url='https://api.bscscan.com/api?module=account&action=tokentx&contractaddress='+USDT_BSC+'&address='+BSC_RECEIVER+'&page=1&offset=10&sort=desc';
-    const resp=await fetch(url);
-    const data=await resp.json();
-    if(data.status!=='1'||!data.result) return false;
-    const cutoff=Math.floor((paymentInitTime||Date.now()-300000)/1000);
-    for(const tx of data.result){
-      const ts=parseInt(tx.timeStamp);
-      const value=parseFloat(tx.value)/1e18;
-      if(ts>=cutoff && value>=VIP_PRICE-0.01 && tx.to.toLowerCase()===BSC_RECEIVER.toLowerCase()){
-        return true;
-      }
-    }
+  if(!currentUser){
+    statusEl.textContent=lang==='zh'?'请先登录':'Please log in first';
+    statusEl.className='pay-status error';
     return false;
-  }catch(e){console.warn('BSC verify:',e);return false}
-}
-
-async function verifySolPayment(){
+  }
+  statusEl.textContent=lang==='zh'?'正在服务端验证链上交易...':'Verifying on-chain payment on server...';
+  statusEl.className='pay-status checking';
   try{
-    const resp=await fetch('https://api.mainnet-beta.solana.com',{
-      method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({jsonrpc:'2.0',id:1,method:'getSignaturesForAddress',params:[SOL_RECEIVER,{limit:10}]})
+    const idToken=await currentUser.getIdToken();
+    const resp=await fetch(VIP_VERIFY_URL,{
+      method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':'Bearer '+idToken},
+      body:JSON.stringify({chain:selectedChain,paymentInitTime:paymentInitTime||Date.now()-300000})
     });
     const data=await resp.json();
-    if(!data.result||!data.result.length) return false;
-    const cutoff=Math.floor((paymentInitTime||Date.now()-300000)/1000);
-    for(const sig of data.result){
-      if(sig.blockTime && sig.blockTime>=cutoff && !sig.err){
-        const txResp=await fetch('https://api.mainnet-beta.solana.com',{
-          method:'POST',headers:{'Content-Type':'application/json'},
-          body:JSON.stringify({jsonrpc:'2.0',id:1,method:'getTransaction',params:[sig.signature,{encoding:'jsonParsed',maxSupportedTransactionVersion:0}]})
-        });
-        const txData=await txResp.json();
-        const meta=txData.result?.meta;
-        if(meta && meta.postTokenBalances){
-          for(const bal of meta.postTokenBalances){
-            if(bal.mint===USDT_SOL_MINT) return true;
-          }
-        }
-      }
+    if(resp.ok && data.success){
+      statusEl.textContent=lang==='zh'?'支付验证成功！VIP 已激活':'Payment verified! VIP activated';
+      statusEl.className='pay-status success';
+      userIsVip=true;
+      userVipExpiry=data.vipExpiry?new Date(data.vipExpiry):null;
+      updateVipBadge();
+      setTimeout(()=>{
+        closeVipModal();
+        alert(lang==='zh'?'恭喜！你已成为 VIP 会员，所有功能无限使用':'Congratulations! You are now a VIP member with unlimited access');
+      },1200);
+      return true;
+    }else{
+      statusEl.textContent=(lang==='zh'?'验证失败：':'Verification failed: ')+(data.error||'Unknown error');
+      statusEl.className='pay-status error';
+      return false;
     }
+  }catch(e){
+    statusEl.textContent=(lang==='zh'?'验证请求失败：':'Verification request failed: ')+(e.message||e);
+    statusEl.className='pay-status error';
     return false;
-  }catch(e){console.warn('SOL verify:',e);return false}
-}
-
-// --- VIP Upgrade ---
-async function upgradeToVip(){
-  if(!currentUser) return;
-  const expiry=new Date();
-  expiry.setDate(expiry.getDate()+30);
-  userIsVip=true;
-  userVipExpiry=expiry;
-  try{
-    await db.collection('users').doc(currentUser.uid).update({
-      isVip:true,
-      vipExpiry:firebase.firestore.Timestamp.fromDate(expiry),
-      vipActivatedAt:firebase.firestore.FieldValue.serverTimestamp(),
-      vipChain:selectedChain
-    });
-    updateVipBadge();
-  }catch(e){console.warn('VIP upgrade failed:',e)}
+  }
 }
 </script>
 </body>

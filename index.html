@@ -1,0 +1,2426 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MiuPack — AI 个人品牌工具箱</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;700;900&family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --purple:#8B5CF6;--blue:#3B82F6;--cyan:#06B6D4;
+  --dark-bg:#08070f;--card-bg:rgba(255,255,255,0.03);
+  --card-border:rgba(255,255,255,0.07);--text-primary:#e8e4f0;
+  --text-secondary:rgba(255,255,255,0.5);--glow-purple:rgba(139,92,246,0.3);
+  --glow-cyan:rgba(6,182,212,0.25);
+}
+html{scroll-behavior:smooth}
+body{
+  font-family:'Noto Sans SC',sans-serif;background:var(--dark-bg);
+  color:var(--text-primary);overflow-x:hidden;min-height:100vh;
+  -webkit-font-smoothing:antialiased;
+}
+body::before{
+  content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
+  background:
+    radial-gradient(ellipse 70% 50% at 25% 8%,rgba(139,92,246,0.1),transparent),
+    radial-gradient(ellipse 50% 40% at 75% 15%,rgba(6,182,212,0.07),transparent),
+    radial-gradient(ellipse 60% 50% at 50% 85%,rgba(59,130,246,0.05),transparent);
+}
+.grid-bg{
+  position:fixed;inset:0;z-index:0;pointer-events:none;opacity:0.02;
+  background-image:
+    linear-gradient(rgba(255,255,255,0.5) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(255,255,255,0.5) 1px,transparent 1px);
+  background-size:64px 64px;
+}
+.scanline{
+  position:fixed;top:0;left:0;right:0;height:2px;z-index:9999;pointer-events:none;
+  background:linear-gradient(90deg,transparent,var(--cyan),transparent);
+  animation:scan 5s ease-in-out infinite;opacity:0.12;
+}
+@keyframes scan{0%{top:-2px}50%{top:100%}100%{top:-2px}}
+.wrapper{position:relative;z-index:1;max-width:1120px;margin:0 auto;padding:0 24px}
+
+/* NAV */
+nav{position:fixed;top:0;left:0;right:0;z-index:100;background:rgba(8,7,15,0.75);backdrop-filter:blur(24px);border-bottom:1px solid var(--card-border)}
+.nav-inner{max-width:1120px;margin:0 auto;padding:14px 24px;display:flex;align-items:center;justify-content:space-between}
+.nav-brand{display:flex;align-items:center;gap:10px;text-decoration:none}
+.nav-brand img{width:34px;height:34px;object-fit:contain;filter:drop-shadow(0 0 8px rgba(139,92,246,0.3))}
+.nav-brand span{font-family:'Orbitron',sans-serif;font-weight:900;font-size:17px;letter-spacing:2px;background:linear-gradient(135deg,var(--purple),var(--cyan));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.nav-right{display:flex;align-items:center;gap:12px}
+.nav-link{color:var(--text-secondary);font-size:13px;text-decoration:none;transition:color .3s;font-weight:400}
+.nav-link:hover{color:var(--text-primary)}
+
+/* LANG TOGGLE */
+.lang-toggle{
+  display:flex;align-items:center;border-radius:8px;overflow:hidden;
+  border:1px solid var(--card-border);background:rgba(255,255,255,0.03);
+  font-size:12px;font-weight:600;cursor:pointer;
+}
+.lang-toggle .lang-opt{
+  padding:5px 10px;transition:all .3s;color:var(--text-secondary);
+  background:transparent;border:none;cursor:pointer;font-family:inherit;font-size:12px;font-weight:600;
+}
+.lang-toggle .lang-opt.active{
+  background:linear-gradient(135deg,var(--purple),var(--cyan));color:#fff;
+}
+
+/* AUTH BUTTONS */
+.nav-auth{display:flex;align-items:center;gap:8px}
+.btn-login{
+  padding:6px 16px;border-radius:8px;border:1px solid var(--card-border);
+  background:transparent;color:var(--text-primary);font-size:12.5px;
+  font-weight:500;cursor:pointer;transition:all .3s;font-family:inherit;
+}
+.btn-login:hover{border-color:rgba(139,92,246,0.3);background:rgba(139,92,246,0.06)}
+.btn-register{
+  padding:6px 16px;border-radius:8px;border:1px solid rgba(139,92,246,0.3);
+  background:linear-gradient(135deg,var(--purple),var(--blue));color:#fff;font-size:12.5px;
+  font-weight:600;cursor:pointer;transition:all .3s;font-family:inherit;
+}
+.btn-register:hover{box-shadow:0 0 20px var(--glow-purple);transform:translateY(-1px)}
+
+/* MODAL OVERLAY */
+.modal-overlay{
+  position:fixed;inset:0;z-index:200;display:none;align-items:center;justify-content:center;
+  background:rgba(0,0,0,0.6);backdrop-filter:blur(8px);
+  opacity:0;transition:opacity .3s;
+}
+.modal-overlay.show{display:flex;opacity:1}
+.modal-overlay.hiding{opacity:0}
+
+/* MODAL BOX */
+.modal{
+  position:relative;width:400px;max-width:92vw;
+  background:rgba(16,14,28,0.95);border:1px solid rgba(139,92,246,0.15);
+  border-radius:20px;padding:40px 32px 32px;
+  backdrop-filter:blur(20px);
+  box-shadow:0 40px 80px rgba(0,0,0,0.5),0 0 60px rgba(139,92,246,0.08);
+  transform:translateY(20px) scale(0.97);transition:transform .35s cubic-bezier(.16,1,.3,1);
+}
+.modal-overlay.show .modal{transform:translateY(0) scale(1)}
+.modal::before{
+  content:'';position:absolute;top:0;left:32px;right:32px;height:1px;
+  background:linear-gradient(90deg,transparent,var(--purple),var(--cyan),transparent);
+}
+.modal-close{
+  position:absolute;top:14px;right:16px;width:30px;height:30px;
+  border:none;background:rgba(255,255,255,0.05);border-radius:8px;
+  color:var(--text-secondary);cursor:pointer;font-size:16px;
+  display:flex;align-items:center;justify-content:center;transition:all .2s;
+}
+.modal-close:hover{background:rgba(255,255,255,0.1);color:#fff}
+.modal-logo{display:flex;align-items:center;gap:8px;margin-bottom:24px}
+.modal-logo img{width:28px;height:28px;object-fit:contain}
+.modal-logo span{font-family:'Orbitron',sans-serif;font-weight:900;font-size:15px;letter-spacing:1px;background:linear-gradient(135deg,var(--purple),var(--cyan));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.modal h2{font-size:22px;font-weight:900;margin-bottom:6px;color:#fff}
+.modal .modal-desc{font-size:13px;color:var(--text-secondary);margin-bottom:28px;line-height:1.6}
+
+/* FORM */
+.form-group{margin-bottom:16px}
+.form-group label{display:block;font-size:12px;font-weight:600;color:var(--text-secondary);margin-bottom:6px}
+.form-group input{
+  width:100%;padding:11px 14px;border-radius:10px;font-size:14px;
+  border:1px solid var(--card-border);background:rgba(255,255,255,0.04);
+  color:var(--text-primary);font-family:inherit;outline:none;transition:border-color .3s;
+}
+.form-group input:focus{border-color:rgba(139,92,246,0.4);box-shadow:0 0 0 3px rgba(139,92,246,0.08)}
+.form-group input::placeholder{color:rgba(255,255,255,0.25)}
+.form-submit{
+  width:100%;padding:12px;border:none;border-radius:10px;
+  background:linear-gradient(135deg,var(--purple),var(--blue));
+  color:#fff;font-size:14px;font-weight:700;font-family:inherit;
+  cursor:pointer;transition:all .3s;margin-top:8px;
+}
+.form-submit:hover{box-shadow:0 4px 24px var(--glow-purple);transform:translateY(-1px)}
+.form-divider{
+  display:flex;align-items:center;gap:12px;margin:20px 0;
+  color:var(--text-secondary);font-size:11px;
+}
+.form-divider::before,.form-divider::after{content:'';flex:1;height:1px;background:var(--card-border)}
+.social-login{display:flex;gap:10px;margin-bottom:20px}
+.social-btn{
+  flex:1;padding:10px;border-radius:10px;border:1px solid var(--card-border);
+  background:rgba(255,255,255,0.03);cursor:pointer;transition:all .3s;
+  display:flex;align-items:center;justify-content:center;gap:6px;
+  color:var(--text-secondary);font-size:12px;font-weight:500;font-family:inherit;
+}
+.social-btn:hover{border-color:rgba(139,92,246,0.2);background:rgba(139,92,246,0.05)}
+.social-btn svg{width:16px;height:16px}
+.modal-footer{text-align:center;font-size:12.5px;color:var(--text-secondary)}
+.modal-footer a{color:var(--cyan);text-decoration:none;font-weight:600;cursor:pointer}
+.modal-footer a:hover{text-decoration:underline}
+
+/* HERO */
+.hero{padding:140px 0 80px;text-align:center;display:flex;flex-direction:column;align-items:center}
+.hero-logo{position:relative;width:120px;height:120px;margin-bottom:28px;animation:fadeUp .8s cubic-bezier(.16,1,.3,1) both}
+.hero-logo::before{content:'';position:absolute;inset:-16px;border-radius:50%;background:conic-gradient(from 0deg,var(--purple),var(--cyan),var(--blue),var(--purple));animation:spin 10s linear infinite;opacity:0.35;filter:blur(18px)}
+@keyframes spin{to{transform:rotate(360deg)}}
+.hero-logo img{position:relative;z-index:1;width:100%;height:100%;object-fit:contain;filter:drop-shadow(0 4px 20px rgba(139,92,246,0.25))}
+.hero h1{font-family:'Orbitron',sans-serif;font-weight:900;font-size:clamp(32px,5.5vw,56px);line-height:1.1;margin-bottom:8px;letter-spacing:3px;background:linear-gradient(135deg,#fff 20%,var(--purple) 55%,var(--cyan) 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;animation:fadeUp .8s .12s cubic-bezier(.16,1,.3,1) both}
+.hero-sub{font-size:clamp(15px,2.2vw,18px);color:var(--text-secondary);max-width:480px;line-height:1.8;font-weight:300;margin-bottom:36px;animation:fadeUp .8s .24s cubic-bezier(.16,1,.3,1) both}
+.hero-cta{display:inline-flex;align-items:center;gap:8px;padding:14px 36px;border-radius:12px;border:none;cursor:pointer;font-size:15px;font-weight:700;font-family:'Noto Sans SC',sans-serif;color:#fff;position:relative;background:linear-gradient(135deg,var(--purple),var(--blue));box-shadow:0 4px 30px var(--glow-purple);transition:all .4s;animation:fadeUp .8s .36s cubic-bezier(.16,1,.3,1) both}
+.hero-cta:hover{transform:translateY(-2px);box-shadow:0 8px 40px var(--glow-purple),0 0 60px var(--glow-cyan)}
+.hero-cta svg{width:16px;height:16px}
+@keyframes fadeUp{from{opacity:0;transform:translateY(24px)}to{opacity:1;transform:translateY(0)}}
+
+/* SECTION */
+.section-title{text-align:center;margin-bottom:48px}
+.section-title h2{font-size:clamp(22px,3.5vw,32px);font-weight:900;margin-bottom:10px;color:var(--text-primary)}
+.section-title p{color:var(--text-secondary);font-size:14px;max-width:420px;margin:0 auto;line-height:1.7}
+.features{padding:20px 0 100px}
+.card-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:20px}
+
+/* CARD */
+.card{position:relative;display:flex;flex-direction:column;padding:28px 24px 24px;border-radius:16px;background:var(--card-bg);border:1px solid var(--card-border);backdrop-filter:blur(8px);transition:all .4s cubic-bezier(.16,1,.3,1);opacity:0;transform:translateY(30px)}
+.card.visible{opacity:1;transform:translateY(0)}
+.card::before{content:'';position:absolute;top:0;left:24px;right:24px;height:1px;background:linear-gradient(90deg,transparent,var(--purple),var(--cyan),transparent);opacity:0;transition:opacity .4s}
+.card:hover{border-color:rgba(139,92,246,0.2);transform:translateY(-4px);box-shadow:0 16px 48px rgba(0,0,0,0.25),0 0 32px rgba(139,92,246,0.06)}
+.card:hover::before{opacity:1}
+.card::after{content:'';position:absolute;inset:0;border-radius:16px;background:radial-gradient(circle 200px at var(--mx,50%) var(--my,50%),rgba(139,92,246,0.05),transparent);pointer-events:none;opacity:0;transition:opacity .3s}
+.card:hover::after{opacity:1}
+.card-icon{width:44px;height:44px;border-radius:12px;margin-bottom:16px;display:flex;align-items:center;justify-content:center;flex-shrink:0;background:linear-gradient(135deg,rgba(139,92,246,0.12),rgba(6,182,212,0.08));border:1px solid rgba(139,92,246,0.12);transition:all .4s}
+.card:hover .card-icon{box-shadow:0 0 20px rgba(139,92,246,0.15);border-color:rgba(139,92,246,0.25)}
+.card-icon svg{width:22px;height:22px;stroke:var(--cyan);fill:none;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round}
+.card h3{font-size:15px;font-weight:700;margin-bottom:8px;color:#fff;line-height:1.4}
+.card p{font-size:13px;color:var(--text-secondary);line-height:1.75;margin-bottom:auto;padding-bottom:14px;flex:1}
+.card-tags{display:flex;flex-wrap:wrap;gap:5px;margin-top:auto}
+.tag{padding:2px 8px;border-radius:6px;font-size:10.5px;font-weight:500;background:rgba(139,92,246,0.08);border:1px solid rgba(139,92,246,0.12);color:rgba(255,255,255,0.5);transition:all .3s;white-space:nowrap}
+.card:hover .tag{border-color:rgba(139,92,246,0.25);color:rgba(255,255,255,0.7)}
+.new-badge{display:inline-block;padding:1px 7px;border-radius:4px;font-size:10px;font-weight:700;background:linear-gradient(135deg,var(--purple),var(--cyan));color:#fff;letter-spacing:.5px;margin-right:4px;vertical-align:middle}
+.card-subtitle{font-size:11.5px;color:var(--cyan);font-weight:500;margin-bottom:8px;display:flex;align-items:center;gap:4px}
+
+/* STAGGER */
+.card:nth-child(1){transition-delay:.0s}.card:nth-child(2){transition-delay:.06s}.card:nth-child(3){transition-delay:.12s}.card:nth-child(4){transition-delay:.18s}.card:nth-child(5){transition-delay:.24s}.card:nth-child(6){transition-delay:.30s}.card:nth-child(7){transition-delay:.36s}.card:nth-child(8){transition-delay:.42s}.card:nth-child(9){transition-delay:.48s}.card:nth-child(10){transition-delay:.54s}
+
+/* KITTEN BANNER */
+.kitten-banner{display:flex;align-items:center;justify-content:center;margin-top:40px}
+.kitten-banner a{display:flex;align-items:center;gap:12px;padding:16px 36px;border-radius:14px;text-decoration:none;background:rgba(255,255,255,0.03);border:1px solid var(--card-border);transition:all .4s cubic-bezier(.16,1,.3,1);color:var(--text-primary)}
+.kitten-banner a:hover{border-color:rgba(139,92,246,0.25);transform:translateY(-2px);box-shadow:0 12px 40px rgba(0,0,0,0.2),0 0 24px rgba(139,92,246,0.06)}
+.kitten-banner .kitten-icon{width:36px;height:36px;display:flex;align-items:center;justify-content:center;border-radius:10px;background:linear-gradient(135deg,rgba(139,92,246,0.15),rgba(6,182,212,0.1));flex-shrink:0}
+.kitten-banner .kitten-text{font-size:15px;font-weight:700;background:linear-gradient(135deg,var(--purple),var(--cyan));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.kitten-banner .kitten-handle{font-size:12px;color:var(--text-secondary);font-weight:400;-webkit-text-fill-color:initial;background:none}
+.kitten-banner .arrow{margin-left:4px;color:var(--text-secondary);transition:transform .3s}
+.kitten-banner a:hover .arrow{transform:translateX(4px);color:var(--cyan)}
+
+/* AD BANNER */
+.ad-banner{
+  display:flex;align-items:center;justify-content:center;gap:12px;
+  margin:0 0 40px;padding:18px 32px;border-radius:14px;text-decoration:none;
+  background:rgba(255,255,255,0.02);border:1px dashed rgba(139,92,246,0.2);
+  transition:all .4s cubic-bezier(.16,1,.3,1);
+}
+.ad-banner:hover{
+  border-color:rgba(139,92,246,0.35);border-style:solid;
+  background:rgba(139,92,246,0.04);
+  box-shadow:0 8px 32px rgba(0,0,0,0.15),0 0 20px rgba(139,92,246,0.05);
+  transform:translateY(-2px);
+}
+.ad-label{
+  padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700;letter-spacing:1px;
+  background:rgba(255,255,255,0.06);color:var(--text-secondary);border:1px solid var(--card-border);
+}
+.ad-text{font-size:14px;color:var(--text-secondary);font-weight:400}
+.ad-cta{font-size:13px;color:var(--purple);font-weight:600;margin-left:auto;transition:color .3s}
+.ad-banner:hover .ad-cta{color:var(--cyan)}
+
+/* FOOTER */
+footer{border-top:1px solid var(--card-border);padding:36px 0;text-align:center;color:var(--text-secondary);font-size:12px}
+footer .f{display:flex;align-items:center;justify-content:center;gap:8px;flex-wrap:wrap}
+
+/* RESPONSIVE */
+@media(max-width:860px){
+  .card-grid{grid-template-columns:repeat(2,1fr);gap:16px}
+  .nav-right .nav-link{display:none}
+}
+@media(max-width:540px){
+  .card-grid{grid-template-columns:1fr;gap:14px}
+  .hero{padding:120px 0 60px}
+  .card{padding:24px 20px 20px}
+  .nav-auth .btn-login{display:none}
+  .modal{padding:32px 24px 24px}
+  .try-modal{width:95vw}
+}
+
+/* === TRY-IT DEMO MODAL === */
+.try-modal{
+  width:520px;max-width:95vw;max-height:85vh;overflow-y:auto;
+  background:rgba(16,14,28,0.97);border:1px solid rgba(139,92,246,0.15);
+  border-radius:20px;padding:32px;backdrop-filter:blur(20px);
+  box-shadow:0 40px 80px rgba(0,0,0,0.5),0 0 60px rgba(139,92,246,0.08);
+  transform:translateY(20px) scale(0.97);transition:transform .35s cubic-bezier(.16,1,.3,1);
+  position:relative;
+}
+.modal-overlay.show .try-modal{transform:translateY(0) scale(1)}
+.try-modal::before{
+  content:'';position:absolute;top:0;left:32px;right:32px;height:1px;
+  background:linear-gradient(90deg,transparent,var(--purple),var(--cyan),transparent);
+}
+.try-modal h2{font-size:18px;font-weight:900;color:#fff;margin-bottom:4px}
+.try-modal .try-desc{font-size:12.5px;color:var(--text-secondary);margin-bottom:20px;line-height:1.6}
+.try-modal label{display:block;font-size:12px;font-weight:600;color:var(--text-secondary);margin-bottom:6px}
+.try-modal textarea,.try-modal select{
+  width:100%;padding:10px 14px;border-radius:10px;font-size:13px;
+  border:1px solid var(--card-border);background:rgba(255,255,255,0.04);
+  color:var(--text-primary);font-family:inherit;outline:none;transition:border-color .3s;
+  resize:vertical;
+}
+.try-modal textarea:focus,.try-modal select:focus{border-color:rgba(139,92,246,0.4);box-shadow:0 0 0 3px rgba(139,92,246,0.08)}
+.try-modal select option{background:#1a1728;color:#e8e4f0}
+.try-row{display:flex;gap:12px;margin-bottom:14px}
+.try-row>*{flex:1}
+.try-generate{
+  width:100%;padding:11px;border:none;border-radius:10px;
+  background:linear-gradient(135deg,var(--purple),var(--blue));
+  color:#fff;font-size:13px;font-weight:700;font-family:inherit;
+  cursor:pointer;transition:all .3s;margin-top:4px;
+  display:flex;align-items:center;justify-content:center;gap:6px;
+}
+.try-generate:hover{box-shadow:0 4px 24px var(--glow-purple);transform:translateY(-1px)}
+.try-generate:disabled{opacity:0.5;cursor:not-allowed;transform:none;box-shadow:none}
+.try-generate .spinner{
+  width:14px;height:14px;border:2px solid rgba(255,255,255,0.3);
+  border-top-color:#fff;border-radius:50%;animation:spin 0.6s linear infinite;
+  display:none;
+}
+.try-generate.loading .spinner{display:block}
+.try-generate.loading .btn-text{display:none}
+.try-result{
+  margin-top:16px;padding:16px;border-radius:12px;
+  background:rgba(255,255,255,0.03);border:1px solid var(--card-border);
+  font-size:13px;line-height:1.8;color:var(--text-primary);
+  white-space:pre-wrap;word-break:break-word;display:none;
+  max-height:300px;overflow-y:auto;
+}
+.try-result.show{display:block}
+.try-result-header{
+  display:flex;align-items:center;justify-content:space-between;
+  margin-bottom:10px;
+}
+.try-result-header span{font-size:11px;color:var(--cyan);font-weight:600}
+.try-copy{
+  padding:4px 10px;border-radius:6px;border:1px solid var(--card-border);
+  background:rgba(255,255,255,0.04);color:var(--text-secondary);
+  font-size:11px;cursor:pointer;transition:all .2s;font-family:inherit;
+}
+.try-copy:hover{border-color:rgba(139,92,246,0.3);color:#fff}
+.try-error{color:#f87171;font-size:12px;margin-top:10px;display:none}
+.try-error.show{display:block}
+.form-msg{font-size:12px;margin:8px 0;min-height:16px;text-align:center}
+.form-msg.error{color:#f87171}
+.form-msg.success{color:#34d399}
+.nav-user{display:flex;align-items:center;gap:8px}
+.nav-user-name{
+  font-size:12px;font-weight:600;color:var(--cyan);max-width:100px;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+}
+.nav-history-btn{
+  padding:5px 12px;border-radius:8px;border:1px solid var(--card-border);
+  background:transparent;color:var(--text-secondary);font-size:11px;
+  cursor:pointer;transition:all .3s;font-family:inherit;
+}
+.nav-history-btn:hover{border-color:rgba(139,92,246,0.3);color:var(--text-primary)}
+/* History modal */
+.history-list{max-height:400px;overflow-y:auto}
+.history-item{
+  padding:12px;border-radius:10px;margin-bottom:8px;
+  background:rgba(255,255,255,0.03);border:1px solid var(--card-border);
+  cursor:pointer;transition:all .3s;
+}
+.history-item:hover{border-color:rgba(139,92,246,0.2);background:rgba(139,92,246,0.04)}
+.history-item-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:4px}
+.history-item-title{font-size:13px;font-weight:600;color:#fff}
+.history-item-time{font-size:10px;color:var(--text-secondary)}
+.history-item-preview{font-size:12px;color:var(--text-secondary);line-height:1.5;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.history-empty{text-align:center;padding:40px 20px;color:var(--text-secondary);font-size:13px}
+#fmResultContent img{max-width:100%;border-radius:10px;margin-top:8px}
+#fmResultContent{white-space:pre-wrap;word-break:break-word;font-size:13px;line-height:1.7;color:var(--text-primary)}
+#fmInputs label{display:block;font-size:12px;color:var(--text-secondary);margin-bottom:4px;margin-top:12px}
+#fmInputs select,#fmInputs input,#fmInputs textarea{
+  width:100%;padding:10px 12px;border-radius:10px;border:1px solid var(--card-border);
+  background:rgba(255,255,255,0.04);color:var(--text-primary);font-family:inherit;font-size:13px;
+  outline:none;transition:border-color .3s;
+}
+#fmInputs select:focus,#fmInputs input:focus,#fmInputs textarea:focus{border-color:rgba(139,92,246,0.4)}
+#fmInputs .fm-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+/* Image download controls */
+.img-actions{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-top:12px;padding-top:12px;border-top:1px solid var(--card-border)}
+.img-actions label{font-size:11px;color:var(--text-secondary);font-weight:600;margin:0}
+.img-actions select{
+  padding:5px 10px;border-radius:8px;font-size:12px;
+  border:1px solid var(--card-border);background:rgba(255,255,255,0.04);
+  color:var(--text-primary);font-family:inherit;outline:none;
+}
+.img-download-btn{
+  padding:6px 14px;border-radius:8px;border:1px solid rgba(139,92,246,0.3);
+  background:linear-gradient(135deg,rgba(139,92,246,0.15),rgba(6,182,212,0.1));
+  color:var(--cyan);font-size:12px;font-weight:600;cursor:pointer;
+  transition:all .3s;font-family:inherit;display:flex;align-items:center;gap:4px;
+}
+.img-download-btn:hover{background:linear-gradient(135deg,rgba(139,92,246,0.25),rgba(6,182,212,0.15));transform:translateY(-1px)}
+.img-download-btn svg{width:14px;height:14px}
+#fmResultContent img{max-width:100%;border-radius:10px;margin-top:8px;display:block}
+/* Resume PDF */
+.resume-template-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:12px 0}
+.resume-tpl-card{
+  padding:10px 8px;border-radius:10px;border:2px solid var(--card-border);
+  background:rgba(255,255,255,0.03);cursor:pointer;transition:all .3s;text-align:center;
+}
+.resume-tpl-card:hover{border-color:rgba(139,92,246,0.3);background:rgba(139,92,246,0.04)}
+.resume-tpl-card.active{border-color:var(--purple);background:rgba(139,92,246,0.08);box-shadow:0 0 16px rgba(139,92,246,0.15)}
+.resume-tpl-card .tpl-icon{font-size:24px;margin-bottom:4px}
+.resume-tpl-card .tpl-name{font-size:11px;font-weight:600;color:var(--text-primary)}
+.resume-tpl-card .tpl-desc{font-size:9.5px;color:var(--text-secondary);margin-top:2px}
+.pdf-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px;align-items:center}
+.pdf-download-btn{
+  padding:8px 18px;border-radius:10px;border:none;
+  background:linear-gradient(135deg,var(--purple),var(--blue));
+  color:#fff;font-size:13px;font-weight:700;cursor:pointer;
+  transition:all .3s;font-family:inherit;display:flex;align-items:center;gap:6px;
+}
+.pdf-download-btn:hover{box-shadow:0 4px 24px var(--glow-purple);transform:translateY(-1px)}
+.pdf-download-btn:disabled{opacity:0.5;cursor:not-allowed;transform:none;box-shadow:none}
+.pdf-download-btn svg{width:16px;height:16px}
+.pdf-preview-btn{
+  padding:8px 16px;border-radius:10px;border:1px solid var(--card-border);
+  background:rgba(255,255,255,0.04);color:var(--text-secondary);
+  font-size:12px;font-weight:600;cursor:pointer;transition:all .3s;font-family:inherit;
+}
+.pdf-preview-btn:hover{border-color:rgba(139,92,246,0.3);color:var(--text-primary)}
+.resume-preview-overlay{
+  position:fixed;inset:0;z-index:300;display:none;align-items:center;justify-content:center;
+  background:rgba(0,0,0,0.7);backdrop-filter:blur(8px);
+}
+.resume-preview-overlay.show{display:flex}
+.resume-preview-frame{
+  width:700px;max-width:95vw;max-height:90vh;overflow-y:auto;
+  background:#fff;border-radius:12px;padding:0;
+  box-shadow:0 40px 80px rgba(0,0,0,0.5);position:relative;
+}
+.resume-preview-close{
+  position:fixed;top:20px;right:20px;z-index:301;width:40px;height:40px;
+  border:none;background:rgba(0,0,0,0.6);border-radius:50%;
+  color:#fff;font-size:20px;cursor:pointer;display:flex;align-items:center;justify-content:center;
+}
+
+/* VIP SYSTEM */
+.vip-badge{display:inline-block;padding:1px 6px;border-radius:4px;font-size:10px;font-weight:700;background:linear-gradient(135deg,#f59e0b,#ef4444);color:#fff;margin-left:4px;letter-spacing:.5px;vertical-align:middle}
+.vip-price{font-family:'Orbitron',sans-serif;font-size:40px;font-weight:900;background:linear-gradient(135deg,#f59e0b,#ef4444);-webkit-background-clip:text;-webkit-text-fill-color:transparent;text-align:center;margin:16px 0 4px}
+.vip-price-sub{text-align:center;font-size:12px;color:var(--text-secondary);margin-bottom:20px}
+.chain-tabs{display:flex;gap:8px;margin-bottom:16px}
+.chain-tab{flex:1;padding:10px;border-radius:10px;border:1px solid var(--card-border);background:rgba(255,255,255,0.03);cursor:pointer;text-align:center;transition:all .3s;font-family:inherit;color:var(--text-secondary);font-size:13px;font-weight:600}
+.chain-tab.active{border-color:rgba(139,92,246,0.4);background:rgba(139,92,246,0.08);color:var(--text-primary)}
+.chain-tab:hover{border-color:rgba(139,92,246,0.25)}
+.wallet-btns{display:flex;flex-direction:column;gap:8px;margin-bottom:16px}
+.wallet-btn{padding:12px;border-radius:10px;border:1px solid var(--card-border);background:rgba(255,255,255,0.04);cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;transition:all .3s;font-family:inherit;color:var(--text-primary);font-size:14px;font-weight:600}
+.wallet-btn:hover{border-color:rgba(139,92,246,0.3);background:rgba(139,92,246,0.06);transform:translateY(-1px)}
+.wallet-btn:disabled{opacity:0.5;cursor:not-allowed;transform:none}
+.pay-address-box{padding:14px;border-radius:10px;background:rgba(255,255,255,0.03);border:1px solid var(--card-border);margin-bottom:12px;display:none}
+.pay-address-box.show{display:block}
+.pay-address-label{font-size:11px;color:var(--text-secondary);margin-bottom:6px;font-weight:600}
+.pay-address{font-size:11px;color:var(--cyan);word-break:break-all;font-family:monospace;line-height:1.6;user-select:all}
+.pay-status{text-align:center;font-size:12px;min-height:18px;margin:8px 0}
+.pay-status.checking{color:var(--cyan)}
+.pay-status.success{color:#34d399}
+.pay-status.error{color:#f87171}
+.vip-usage-info{text-align:center;padding:12px;border-radius:10px;background:rgba(255,255,255,0.03);border:1px solid var(--card-border);margin-bottom:16px;font-size:13px;color:var(--text-secondary)}
+.vip-usage-info strong{color:#f87171}
+.paid-btn{width:100%;padding:12px;border:none;border-radius:10px;background:linear-gradient(135deg,#f59e0b,#ef4444);color:#fff;font-size:14px;font-weight:700;font-family:inherit;cursor:pointer;transition:all .3s;display:none}
+.paid-btn.show{display:block}
+.paid-btn:hover{box-shadow:0 4px 24px rgba(245,158,11,0.3);transform:translateY(-1px)}
+.paid-btn:disabled{opacity:0.5;cursor:not-allowed;transform:none;box-shadow:none}
+</style>
+</head>
+<body>
+
+<div class="grid-bg"></div>
+<div class="scanline"></div>
+
+<!-- NAV -->
+<nav>
+  <div class="nav-inner">
+    <a class="nav-brand" href="#">
+      <img src="logo2.png" alt="MiuPack">
+      <span>MIUPACK</span>
+    </a>
+    <div class="nav-right">
+      <!-- Lang Toggle -->
+      <div class="lang-toggle" id="langToggle">
+        <button class="lang-opt active" data-lang="zh">中</button>
+        <button class="lang-opt" data-lang="en">EN</button>
+      </div>
+      <!-- Auth -->
+      <div class="nav-auth">
+        <button class="btn-login" id="navLoginBtn" onclick="openModal('login')" data-i18n="nav_login">登录</button>
+        <div class="nav-user" id="navUser" style="display:none">
+          <span class="nav-user-name" id="navUserName"></span>
+          <button class="btn-login" onclick="openHistoryModal()" data-i18n="nav_history">历史</button>
+          <button class="btn-login" onclick="handleLogout()" data-i18n="nav_logout">退出</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</nav>
+
+<!-- LOGIN MODAL -->
+<div class="modal-overlay" id="loginModal">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal('login')">&times;</button>
+    <div class="modal-logo"><img src="logo2.png" alt=""><span>MIUPACK</span></div>
+    <h2 data-i18n="login_title">欢迎回来</h2>
+    <p class="modal-desc" data-i18n="login_desc">登录你的 MiuPack 账户，继续打造个人品牌</p>
+    <form onsubmit="return handleLogin(event)">
+      <div class="form-group">
+        <label data-i18n="label_email">邮箱地址</label>
+        <input type="email" id="loginEmail" data-i18n-placeholder="ph_email" placeholder="you@example.com">
+      </div>
+      <div class="form-group">
+        <label data-i18n="label_password">密码</label>
+        <input type="password" id="loginPassword" data-i18n-placeholder="ph_password" placeholder="输入密码">
+      </div>
+      <div class="form-msg" id="loginMsg"></div>
+      <button class="form-submit" id="loginSubmitBtn" data-i18n="btn_login">登录</button>
+    </form>
+    <p class="modal-footer" style="margin-top:20px">
+      <span data-i18n="no_account">还没有账户？</span>
+      <a onclick="switchModal('register')" data-i18n="go_register">立即注册</a>
+    </p>
+  </div>
+</div>
+
+<!-- REGISTER MODAL -->
+<div class="modal-overlay" id="registerModal">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal('register')">&times;</button>
+    <div class="modal-logo"><img src="logo2.png" alt=""><span>MIUPACK</span></div>
+    <h2 data-i18n="register_title">创建账户</h2>
+    <p class="modal-desc" data-i18n="register_desc">加入 MiuPack，开始你的 AI 个人品牌之旅</p>
+    <form onsubmit="return handleRegister(event)">
+      <div class="form-group">
+        <label data-i18n="label_name">昵称</label>
+        <input type="text" id="regName" data-i18n-placeholder="ph_name" placeholder="你的昵称">
+      </div>
+      <div class="form-group">
+        <label data-i18n="label_email">邮箱地址</label>
+        <input type="email" id="regEmail" data-i18n-placeholder="ph_email" placeholder="you@example.com">
+      </div>
+      <div class="form-group">
+        <label data-i18n="label_password">密码</label>
+        <input type="password" id="regPassword" data-i18n-placeholder="ph_password_new" placeholder="设置密码（至少 8 位）">
+      </div>
+      <div class="form-msg" id="regMsg"></div>
+      <button class="form-submit" id="regSubmitBtn" data-i18n="btn_register">注册</button>
+    </form>
+    <p class="modal-footer" style="margin-top:20px">
+      <span data-i18n="has_account">已有账户？</span>
+      <a onclick="switchModal('login')" data-i18n="go_login">立即登录</a>
+    </p>
+  </div>
+</div>
+
+<div class="wrapper">
+
+  <!-- HERO -->
+  <section class="hero">
+    <div class="hero-logo"><img src="logo2.png" alt="MiuPack"></div>
+    <h1>MIUPACK</h1>
+    <p class="hero-sub" data-i18n="hero_sub">AI 驱动的个人品牌全能工具箱<br>一键搞定简介、头像、文案、签名、日历</p>
+    <button class="hero-cta" onclick="document.getElementById('features').scrollIntoView({behavior:'smooth'})">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+      <span data-i18n="hero_cta">探索全部功能</span>
+    </button>
+  </section>
+
+  <!-- FEATURES -->
+  <section class="features" id="features">
+    <div class="section-title">
+      <h2 data-i18n="section_title">10 大核心功能</h2>
+      <p data-i18n="section_desc">从个人简介到内容日历，一站式打造你的专属品牌形象</p>
+    </div>
+
+    <div class="card-grid">
+      <!-- 1 -->
+      <div class="card" style="cursor:pointer" onclick="openTryModal()">
+        <div class="card-icon"><svg viewBox="0 0 24 24"><path d="M12 2a5 5 0 015 5v1a5 5 0 01-10 0V7a5 5 0 015-5z"/><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/></svg></div>
+        <h3 data-i18n="c1_title">个人简介模板一键生成器</h3>
+        <p data-i18n="c1_desc">覆盖 10+ 主流平台模板，输入关键词即刻生成专业、有个性的个人简介。</p>
+        <div class="card-tags"><span class="tag">X / Twitter</span><span class="tag">LinkedIn</span><span class="tag" data-i18n="tag_xiaohongshu">小红书</span><span class="tag">GitHub</span><span class="tag" data-i18n="tag_resume">简历</span></div>
+      </div>
+      <!-- 2 -->
+      <div class="card" style="cursor:pointer" onclick="openFeatureModal('avatar')">
+        <div class="card-icon"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg></div>
+        <h3 data-i18n="c2_title">头像 + 封面图一键生成</h3>
+        <p data-i18n="c2_desc">AI 根据你的风格偏好，批量生成高质感头像与社交媒体封面图，统一视觉形象。</p>
+        <div class="card-tags"><span class="tag" data-i18n="tag_avatar">头像</span><span class="tag" data-i18n="tag_cover">封面图</span><span class="tag" data-i18n="tag_multistyle">多风格</span></div>
+      </div>
+      <!-- 3 -->
+      <div class="card" style="cursor:pointer" onclick="openFeatureModal('copywriting')">
+        <div class="card-icon"><svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/><path d="M8 9h8M8 13h5"/></svg></div>
+        <h3 data-i18n="c3_title">朋友圈 / 推文文案模板</h3>
+        <p data-i18n="c3_desc">精选爆款文案结构，一键套用到朋友圈、推文、小红书笔记，提升互动率。</p>
+        <div class="card-tags"><span class="tag" data-i18n="tag_moments">朋友圈</span><span class="tag" data-i18n="tag_tweets">推文</span><span class="tag" data-i18n="tag_xiaohongshu">小红书</span></div>
+      </div>
+      <!-- 4 -->
+      <div class="card" style="cursor:pointer" onclick="openFeatureModal('videoScript')">
+        <div class="card-icon"><svg viewBox="0 0 24 24"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg></div>
+        <h3 data-i18n="c4_title">自我介绍视频脚本生成</h3>
+        <p data-i18n="c4_desc">输入背景信息，自动生成 30 秒 ~ 3 分钟的自我介绍视频脚本，附带镜头提示。</p>
+        <div class="card-tags"><span class="tag" data-i18n="tag_shortvideo">短视频</span><span class="tag">Vlog</span><span class="tag" data-i18n="tag_interview">面试</span></div>
+      </div>
+      <!-- 5 -->
+      <div class="card" style="cursor:pointer" onclick="openFeatureModal('emailSig')">
+        <div class="card-icon"><svg viewBox="0 0 24 24"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg></div>
+        <h3 data-i18n="c5_title">签名档 / 邮件签名一键生成</h3>
+        <p data-i18n="c5_desc">专业邮件签名模板，包含姓名、职位、联系方式与社交链接，复制即用。</p>
+        <div class="card-tags"><span class="tag">Outlook</span><span class="tag">Gmail</span><span class="tag" data-i18n="tag_wecom">企业微信</span></div>
+      </div>
+      <!-- 6 -->
+      <div class="card" style="cursor:pointer" onclick="openFeatureModal('resumePdf')">
+        <div class="card-icon"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="15" x2="15" y2="15"/><line x1="9" y1="11" x2="13" y2="11"/></svg></div>
+        <h3 data-i18n="c6_title">简历 PDF 一键美化</h3>
+        <p data-i18n="c6_desc">上传简历内容，AI 自动排版美化，输出高颜值 PDF，支持多种行业模板。</p>
+        <div class="card-tags"><span class="tag">PDF</span><span class="tag" data-i18n="tag_beautify">排版美化</span><span class="tag" data-i18n="tag_ats">ATS 友好</span></div>
+      </div>
+      <!-- 7 -->
+      <div class="card" style="cursor:pointer" onclick="openFeatureModal('brandLogo')">
+        <div class="card-icon"><svg viewBox="0 0 24 24"><path d="M12 19l7-7 3 3-7 7-3-3z"/><path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"/><path d="M2 2l7.586 7.586"/><circle cx="11" cy="11" r="2"/></svg></div>
+        <h3 data-i18n="c7_title">电子签名 & 合同小卡生成</h3>
+        <p data-i18n="c7_desc">一键生成带可爱印章的电子签名图片 + 微信签名档，发合作文件更显专业。</p>
+        <div class="card-tags"><span class="tag" data-i18n="tag_stamp">电子印章</span><span class="tag" data-i18n="tag_wxsig">微信签名档</span><span class="tag" data-i18n="tag_contract">合同</span></div>
+      </div>
+      <!-- 8 -->
+      <div class="card" style="cursor:pointer" onclick="openFeatureModal('hashtag')">
+        <div class="card-icon"><svg viewBox="0 0 24 24"><line x1="4" y1="9" x2="20" y2="9"/><line x1="4" y1="15" x2="20" y2="15"/><line x1="10" y1="3" x2="8" y2="21"/><line x1="16" y1="3" x2="14" y2="21"/></svg></div>
+        <h3 data-i18n="c8_title">Hashtag + 话题智能推荐器</h3>
+        <p data-i18n="c8_desc">输入一句话，AI 给出 20 个高热度 + 低竞争的 hashtag 组合，各平台专属适配。</p>
+        <div class="card-tags"><span class="tag" data-i18n="tag_xiaohongshu">小红书</span><span class="tag">X / Twitter</span><span class="tag" data-i18n="tag_douyin">抖音</span></div>
+      </div>
+      <!-- 9 -->
+      <div class="card" style="cursor:pointer" onclick="openFeatureModal('calendar')">
+        <div class="card-icon"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><path d="M8 14h.01M12 14h.01M16 14h.01M8 18h.01M12 18h.01"/></svg></div>
+        <h3 data-i18n="c9_title">内容日历 & 发帖计划生成</h3>
+        <p data-i18n="c9_desc">输入你的 IP 定位，自动生成 30 天发帖计划：每天主题 + 文案 + 最佳时间 + hashtag。</p>
+        <div class="card-tags"><span class="tag" data-i18n="tag_30day">30 天计划</span><span class="tag" data-i18n="tag_draft">文案草稿</span><span class="tag" data-i18n="tag_besttime">最佳时间</span></div>
+      </div>
+      <!-- 10 -->
+      <div class="card" style="cursor:pointer" onclick="openFeatureModal('ipDiagnosis')">
+        <div class="card-icon"><svg viewBox="0 0 24 24"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg></div>
+        <div class="card-subtitle"><span class="new-badge">NEW</span></div>
+        <h3 data-i18n="c10_title">IP 健康度一键诊断 & 优化报告</h3>
+        <p data-i18n="c10_desc">输入你的社交链接或粘贴简介，AI 从可爱度、专业度、传播力、一致性 4 个维度打分，给出 3 个致命问题 + 具体优化建议，一键应用自动改写。</p>
+        <div class="card-tags"><span class="tag">X / Twitter</span><span class="tag" data-i18n="tag_xiaohongshu">小红书</span><span class="tag">LinkedIn</span><span class="tag" data-i18n="tag_4dim">4 维打分</span><span class="tag" data-i18n="tag_oneclick">一键优化</span></div>
+      </div>
+    </div>
+
+    <!-- Cute Kitten Banner -->
+    <div class="kitten-banner">
+      <a href="https://x.com/_StarryMiu" target="_blank" rel="noopener">
+        <div class="kitten-icon">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#06B6D4" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5c-1.2-2.4-4-4-4-4s0 3.5-1 5c-1 1.5-3 3-3 6 0 4.4 3.6 8 8 8s8-3.6 8-8c0-3-2-4.5-3-6-1-1.5-1-5-1-5s-2.8 1.6-4 4z"/><path d="M9 17c0 1.7 1.3 3 3 3s3-1.3 3-3"/></svg>
+        </div>
+        <div>
+          <div class="kitten-text">Cute Kitten</div>
+          <div class="kitten-handle">@_StarryMiu</div>
+        </div>
+        <span class="arrow"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg></span>
+      </a>
+    </div>
+
+  </section>
+</div>
+
+<!-- TRY-IT DEMO MODAL -->
+<div class="modal-overlay" id="tryModal">
+  <div class="try-modal">
+    <button class="modal-close" onclick="closeTryModal()">&times;</button>
+    <h2 data-i18n="try_title">个人简介生成器</h2>
+    <p class="try-desc" data-i18n="try_desc">输入你的关键词，AI 将为你生成专业的个人简介</p>
+    <div class="try-row">
+      <div>
+        <label data-i18n="try_platform">目标平台</label>
+        <select id="tryPlatform">
+          <option value="X/Twitter">X / Twitter</option>
+          <option value="LinkedIn">LinkedIn</option>
+          <option value="小红书">小红书</option>
+          <option value="GitHub">GitHub</option>
+          <option value="简历">简历</option>
+          <option value="Instagram">Instagram</option>
+        </select>
+      </div>
+      <div>
+        <label data-i18n="try_tone">语气风格</label>
+        <select id="tryTone">
+          <option value="专业正式" data-i18n-opt="tone_pro">专业正式</option>
+          <option value="活泼可爱" data-i18n-opt="tone_cute">活泼可爱</option>
+          <option value="简洁有力" data-i18n-opt="tone_concise">简洁有力</option>
+          <option value="幽默风趣" data-i18n-opt="tone_humor">幽默风趣</option>
+        </select>
+      </div>
+    </div>
+    <div style="margin-bottom:14px">
+      <label data-i18n="try_keywords">关键词 / 自我描述</label>
+      <textarea id="tryInput" rows="3" data-i18n-placeholder="try_ph" placeholder="例如：全栈开发者，3 年经验，热爱开源，喜欢猫"></textarea>
+    </div>
+    <button class="try-generate" id="tryBtn" onclick="generateBio()">
+      <span class="btn-text" data-i18n="try_generate">生成简介</span>
+      <span class="spinner"></span>
+    </button>
+    <div class="try-error" id="tryError"></div>
+    <div class="try-result" id="tryResult">
+      <div class="try-result-header">
+        <span data-i18n="try_result_label">AI 生成结果</span>
+        <button class="try-copy" onclick="copyResult()" data-i18n="try_copy">复制</button>
+      </div>
+      <div id="tryResultText"></div>
+    </div>
+  </div>
+</div>
+
+<!-- GENERIC FEATURE DEMO MODAL -->
+<div class="modal-overlay" id="featureModal">
+  <div class="try-modal" style="max-width:520px">
+    <button class="modal-close" onclick="closeFeatureModal()">&times;</button>
+    <h2 id="fmTitle"></h2>
+    <p class="try-desc" id="fmDesc"></p>
+    <div id="fmInputs"></div>
+    <button class="try-generate" id="fmBtn" onclick="generateFeature()">
+      <span class="btn-text" id="fmBtnText">生成</span>
+      <span class="spinner"></span>
+    </button>
+    <div class="try-error" id="fmError"></div>
+    <div class="try-result" id="fmResult">
+      <div class="try-result-header">
+        <span id="fmResultLabel">AI 生成结果</span>
+        <button class="try-copy" onclick="copyFeatureResult()">复制</button>
+      </div>
+      <div id="fmResultContent"></div>
+    </div>
+  </div>
+</div>
+
+<!-- HISTORY MODAL -->
+<div class="modal-overlay" id="historyModal">
+  <div class="try-modal" style="max-width:560px">
+    <button class="modal-close" onclick="closeHistoryModal()">&times;</button>
+    <h2 id="historyTitle" data-i18n="history_title">生成历史</h2>
+    <p class="try-desc" data-i18n="history_desc">你的 AI 生成记录</p>
+    <div class="history-list" id="historyList">
+      <div class="history-empty" data-i18n="history_empty">暂无历史记录</div>
+    </div>
+  </div>
+</div>
+
+<!-- RESUME PDF PREVIEW -->
+<div class="resume-preview-overlay" id="resumePreviewOverlay">
+  <button class="resume-preview-close" onclick="closeResumePreview()">&times;</button>
+  <div class="resume-preview-frame">
+    <div id="resumePdfContainer"></div>
+  </div>
+</div>
+
+<!-- VIP MODAL -->
+<div class="modal-overlay" id="vipModal">
+  <div class="try-modal" style="max-width:440px">
+    <button class="modal-close" onclick="closeVipModal()">&times;</button>
+    <div style="text-align:center;margin-bottom:8px">
+      <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="url(#vipGrad)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+        <defs><linearGradient id="vipGrad" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#f59e0b"/><stop offset="100%" stop-color="#ef4444"/></linearGradient></defs>
+        <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+      </svg>
+    </div>
+    <h2 style="text-align:center" id="vipTitle">免费次数已用完</h2>
+    <p class="try-desc" style="text-align:center" id="vipDesc">开通 VIP 无限使用所有功能</p>
+    <div class="vip-usage-info" id="vipUsageInfo"></div>
+    <div class="vip-price">$9.9</div>
+    <div class="vip-price-sub" id="vipPriceSub">/ 月 · USDT 支付</div>
+    <div class="chain-tabs">
+      <button class="chain-tab active" onclick="selectChain('bsc',this)" id="chainBsc">BSC (BEP-20)</button>
+      <button class="chain-tab" onclick="selectChain('sol',this)" id="chainSol">Solana (SPL)</button>
+    </div>
+    <div class="wallet-btns" id="walletBtns"></div>
+    <div class="pay-address-box" id="payAddressBox">
+      <div class="pay-address-label" id="payAddressLabel">USDT 收款地址：</div>
+      <div class="pay-address" id="payAddress"></div>
+    </div>
+    <div class="pay-status" id="payStatus"></div>
+    <button class="paid-btn" id="paidBtn" onclick="handlePaidClick()">我已支付</button>
+  </div>
+</div>
+
+<!-- Ad Banner -->
+<div class="wrapper" style="position:relative;z-index:1">
+  <a class="ad-banner" href="https://x.com/_StarryMiu" target="_blank" rel="noopener">
+    <span class="ad-label" data-i18n="ad_label">AD</span>
+    <span class="ad-text" data-i18n="ad_text">广告位招租</span>
+    <span class="ad-cta" data-i18n="ad_cta">前往了解 &rarr;</span>
+  </a>
+</div>
+
+<footer>
+  <div class="wrapper">
+    <div class="f">
+      <span>&copy; 2026 MiuPack</span>
+      <span>&middot;</span>
+      <span data-i18n="footer_text">AI 驱动的个人品牌工具箱</span>
+    </div>
+  </div>
+</footer>
+
+<!-- Firebase SDK -->
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-analytics-compat.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+<script src="https://unpkg.com/@solana/web3.js@1.95.8/lib/index.iife.min.js"></script>
+
+<!-- PLACEHOLDER: JS will be added via Edit -->
+<script>
+// === Config ===
+// API key is stored server-side only (Firebase Cloud Function).
+// Frontend calls the proxy — no secrets exposed to the client.
+const PROXY_URL='https://us-central1-miupack.cloudfunctions.net/geminiProxy';
+
+// === Firebase Init ===
+firebase.initializeApp({
+  apiKey:"AIzaSyDS6ZOE-xxv-vdv7GKQrpJRFxt3CnYIxos",
+  authDomain:"miupack.firebaseapp.com",
+  projectId:"miupack",
+  storageBucket:"miupack.firebasestorage.app",
+  messagingSenderId:"227646212996",
+  appId:"1:227646212996:web:fa3ae8e99ca482e96c2bd1",
+  measurementId:"G-1MQ5W8S5LV"
+});
+const auth=firebase.auth();
+const db=firebase.firestore();
+try{firebase.analytics()}catch(e){}
+
+// === Feature → Model Mapping ===
+const FEATURES={
+  bio:          {id:1, model:'gemini-3.1-flash',                type:'text',  alt:'gemini-3.1-pro-preview'},
+  avatar:       {id:2, model:'gemini-3.1-flash-image-preview',  type:'image', alt:'gemini-3-pro-image-preview'},
+  copywriting:  {id:3, model:'gemini-3.1-flash',                type:'text',  alt:null},
+  videoScript:  {id:4, model:'gemini-3.1-flash',                type:'text',  alt:'gemini-3.1-pro-preview'},
+  emailSig:     {id:5, model:'gemini-3.1-flash',                type:'text',  alt:null},
+  resumePdf:    {id:6, model:'gemini-3.1-pro-preview',          type:'text',  alt:null},
+  brandLogo:    {id:7, model:'gemini-3.1-flash-image-preview',  type:'image', alt:'gemini-3-pro-image-preview'},
+  hashtag:      {id:8, model:'gemini-3.1-flash',                type:'text',  alt:null},
+  calendar:     {id:9, model:'gemini-3.1-pro-preview',          type:'text',  alt:null},
+  ipDiagnosis:  {id:10,model:'gemini-3.1-pro-preview',          type:'text',  alt:null},
+};
+
+// Helper: call Gemini via server-side proxy (no API key on client)
+async function callGeminiProxy(featureKey, contents, generationConfig){
+  const f=FEATURES[featureKey];
+  if(!f) throw new Error('Unknown feature: '+featureKey);
+  // Get Firebase ID token for authenticated rate-limiting (optional but recommended)
+  let idToken=null;
+  if(currentUser){
+    try{idToken=await currentUser.getIdToken()}catch(e){}
+  }
+  const headers={'Content-Type':'application/json'};
+  if(idToken) headers['Authorization']='Bearer '+idToken;
+  const resp=await fetch(PROXY_URL,{
+    method:'POST',
+    headers,
+    body:JSON.stringify({
+      model:f.model,
+      contents,
+      generationConfig,
+      feature:featureKey
+    })
+  });
+  if(!resp.ok){
+    const err=await resp.json().catch(()=>({}));
+    throw new Error(err.error||'Proxy Error '+resp.status);
+  }
+  return resp.json();
+}
+
+// === i18n Dictionary ===
+const T={
+zh:{
+  nav_features:'功能',nav_about:'关于',nav_login:'登录',nav_register:'注册',
+  hero_sub:'AI 驱动的个人品牌全能工具箱<br>一键搞定简介、头像、文案、签名、日历',
+  hero_cta:'探索全部功能',
+  section_title:'10 大核心功能',section_desc:'从个人简介到内容日历，一站式打造你的专属品牌形象',
+  c1_title:'个人简介模板一键生成器',c1_desc:'覆盖 10+ 主流平台模板，输入关键词即刻生成专业、有个性的个人简介。',
+  c2_title:'头像 + 封面图一键生成',c2_desc:'AI 根据你的风格偏好，批量生成高质感头像与社交媒体封面图，统一视觉形象。',
+  c3_title:'朋友圈 / 推文文案模板',c3_desc:'精选爆款文案结构，一键套用到朋友圈、推文、小红书笔记，提升互动率。',
+  c4_title:'自我介绍视频脚本生成',c4_desc:'输入背景信息，自动生成 30 秒 ~ 3 分钟的自我介绍视频脚本，附带镜头提示。',
+  c5_title:'签名档 / 邮件签名一键生成',c5_desc:'专业邮件签名模板，包含姓名、职位、联系方式与社交链接，复制即用。',
+  c6_title:'简历 PDF 一键美化',c6_desc:'上传简历内容，AI 自动排版美化，输出高颜值 PDF，支持多种行业模板。',
+  c7_title:'电子签名 & 合同小卡生成',c7_desc:'一键生成带可爱印章的电子签名图片 + 微信签名档，发合作文件更显专业。',
+  c8_title:'Hashtag + 话题智能推荐器',c8_desc:'输入一句话，AI 给出 20 个高热度 + 低竞争的 hashtag 组合，各平台专属适配。',
+  c9_title:'内容日历 & 发帖计划生成',c9_desc:'输入你的 IP 定位，自动生成 30 天发帖计划：每天主题 + 文案 + 最佳时间 + hashtag。',
+  c10_title:'IP 健康度一键诊断 & 优化报告',c10_desc:'输入你的社交链接或粘贴简介，AI 从可爱度、专业度、传播力、一致性 4 个维度打分，给出 3 个致命问题 + 具体优化建议，一键应用自动改写。',
+  tag_xiaohongshu:'小红书',tag_resume:'简历',tag_avatar:'头像',tag_cover:'封面图',tag_multistyle:'多风格',
+  tag_moments:'朋友圈',tag_tweets:'推文',tag_shortvideo:'短视频',tag_interview:'面试',tag_wecom:'企业微信',
+  tag_beautify:'排版美化',tag_ats:'ATS 友好',tag_stamp:'电子印章',tag_wxsig:'微信签名档',tag_contract:'合同',
+  tag_douyin:'抖音',tag_30day:'30 天计划',tag_draft:'文案草稿',tag_besttime:'最佳时间',
+  tag_4dim:'4 维打分',tag_oneclick:'一键优化',
+  footer_text:'AI 驱动的个人品牌工具箱',
+  ad_label:'AD',ad_text:'广告位招租',ad_cta:'前往了解 →',
+  login_title:'欢迎回来',login_desc:'登录你的 MiuPack 账户，继续打造个人品牌',
+  register_title:'创建账户',register_desc:'加入 MiuPack，开始你的 AI 个人品牌之旅',
+  or_email:'或使用邮箱',label_email:'邮箱地址',label_password:'密码',label_name:'昵称',
+  btn_login:'登录',btn_register:'注册',
+  no_account:'还没有账户？',go_register:'立即注册',has_account:'已有账户？',go_login:'立即登录',
+  ph_email:'you@example.com',ph_password:'输入密码',ph_password_new:'设置密码（至少 8 位）',ph_name:'你的昵称',
+  try_title:'个人简介生成器',try_desc:'输入你的关键词，AI 将为你生成专业的个人简介',
+  try_platform:'目标平台',try_tone:'语气风格',try_keywords:'关键词 / 自我描述',
+  try_ph:'例如：全栈开发者，3 年经验，热爱开源，喜欢猫',
+  try_generate:'生成简介',try_result_label:'AI 生成结果',try_copy:'复制',
+  nav_logout:'退出',nav_history:'历史',history_title:'生成历史',history_desc:'你的 AI 生成记录',history_empty:'暂无历史记录',history_btn:'历史',
+},
+en:{
+  nav_features:'Features',nav_about:'About',nav_login:'Log in',nav_register:'Sign up',
+  hero_sub:'AI-Powered Personal Branding Toolkit<br>Bio, avatar, copy, signature, calendar — all in one click',
+  hero_cta:'Explore All Features',
+  section_title:'10 Core Features',section_desc:'From bio to content calendar — build your unique brand identity in one place',
+  c1_title:'Bio Template Generator',c1_desc:'10+ platform templates. Enter keywords to instantly create professional, personalized bios.',
+  c2_title:'Avatar & Cover Image Generator',c2_desc:'AI generates high-quality avatars and social media covers based on your style preferences.',
+  c3_title:'Social Post Copywriting Templates',c3_desc:'Curated viral copy structures for WeChat Moments, tweets, and Xiaohongshu posts.',
+  c4_title:'Self-Intro Video Script Generator',c4_desc:'Input your background, get a 30s–3min self-intro video script with shot directions.',
+  c5_title:'Email Signature Generator',c5_desc:'Professional email signature templates with name, title, contact info & social links.',
+  c6_title:'Resume PDF Beautifier',c6_desc:'Upload your resume, AI auto-formats and beautifies it into a stunning PDF.',
+  c7_title:'E-Signature & Contract Card',c7_desc:'Generate cute stamp-style digital signatures + WeChat signature cards for collaboration.',
+  c8_title:'Smart Hashtag Recommender',c8_desc:'Input one sentence, AI returns 20 high-heat, low-competition hashtag combos per platform.',
+  c9_title:'Content Calendar & Post Planner',c9_desc:'Input your niche positioning, auto-generate a 30-day posting plan with topics, drafts & timing.',
+  c10_title:'IP Health Diagnosis & Optimization',c10_desc:'Input your social links or paste your bio. AI scores cuteness, professionalism, reach & consistency, identifies 3 critical issues with optimization suggestions.',
+  tag_xiaohongshu:'Xiaohongshu',tag_resume:'Resume',tag_avatar:'Avatar',tag_cover:'Cover',tag_multistyle:'Multi-style',
+  tag_moments:'Moments',tag_tweets:'Tweets',tag_shortvideo:'Short Video',tag_interview:'Interview',tag_wecom:'WeCom',
+  tag_beautify:'Beautify',tag_ats:'ATS Friendly',tag_stamp:'E-Stamp',tag_wxsig:'WeChat Sig',tag_contract:'Contract',
+  tag_douyin:'Douyin',tag_30day:'30-Day Plan',tag_draft:'Copy Drafts',tag_besttime:'Best Time',
+  tag_4dim:'4D Scoring',tag_oneclick:'One-Click Fix',
+  footer_text:'AI-Powered Personal Branding Toolkit',
+  ad_label:'AD',ad_text:'Ad Space Available',ad_cta:'Learn More →',
+  login_title:'Welcome Back',login_desc:'Log in to your MiuPack account to continue building your brand',
+  register_title:'Create Account',register_desc:'Join MiuPack and start your AI personal branding journey',
+  or_email:'or use email',label_email:'Email',label_password:'Password',label_name:'Nickname',
+  btn_login:'Log in',btn_register:'Sign up',
+  no_account:"Don't have an account? ",go_register:'Sign up now',has_account:'Already have an account? ',go_login:'Log in now',
+  ph_email:'you@example.com',ph_password:'Enter password',ph_password_new:'Set password (min 8 chars)',ph_name:'Your nickname',
+  try_title:'Bio Generator',try_desc:'Enter your keywords and AI will generate a professional bio for you',
+  try_platform:'Target Platform',try_tone:'Tone & Style',try_keywords:'Keywords / Self-description',
+  try_ph:'E.g.: Full-stack developer, 3 years exp, open source lover, cat person',
+  try_generate:'Generate Bio',try_result_label:'AI Generated Result',try_copy:'Copy',
+  nav_logout:'Log out',nav_history:'History',history_title:'Generation History',history_desc:'Your AI generation records',history_empty:'No history yet',history_btn:'History',
+}
+};
+
+let currentLang='zh';
+
+function setLang(lang){
+  currentLang=lang;
+  document.documentElement.lang=lang==='zh'?'zh-CN':'en';
+  document.title=lang==='zh'?'MiuPack — AI 个人品牌工具箱':'MiuPack — AI Personal Branding Toolkit';
+  // Update text
+  document.querySelectorAll('[data-i18n]').forEach(el=>{
+    const key=el.getAttribute('data-i18n');
+    if(T[lang][key]!==undefined) el.innerHTML=T[lang][key];
+  });
+  // Update placeholders
+  document.querySelectorAll('[data-i18n-placeholder]').forEach(el=>{
+    const key=el.getAttribute('data-i18n-placeholder');
+    if(T[lang][key]!==undefined) el.placeholder=T[lang][key];
+  });
+  // Toggle active class
+  document.querySelectorAll('.lang-opt').forEach(btn=>{
+    btn.classList.toggle('active',btn.dataset.lang===lang);
+  });
+}
+
+// Lang toggle
+document.querySelectorAll('.lang-opt').forEach(btn=>{
+  btn.addEventListener('click',()=>setLang(btn.dataset.lang));
+});
+
+// Modal functions
+function openModal(type){
+  const id=type==='login'?'loginModal':'registerModal';
+  const el=document.getElementById(id);
+  el.classList.add('show');
+  el.classList.remove('hiding');
+  document.body.style.overflow='hidden';
+}
+function closeModal(type){
+  const id=type==='login'?'loginModal':'registerModal';
+  const el=document.getElementById(id);
+  el.classList.add('hiding');
+  setTimeout(()=>{el.classList.remove('show','hiding');document.body.style.overflow=''},300);
+}
+function switchModal(to){
+  const from=to==='login'?'register':'login';
+  document.getElementById(from==='login'?'loginModal':'registerModal').classList.remove('show');
+  openModal(to);
+}
+// Close on overlay click
+document.querySelectorAll('.modal-overlay').forEach(overlay=>{
+  overlay.addEventListener('click',e=>{
+    if(e.target===overlay){
+      const type=overlay.id==='loginModal'?'login':'register';
+      closeModal(type);
+    }
+  });
+});
+// Close on Escape
+document.addEventListener('keydown',e=>{
+  if(e.key==='Escape'){closeModal('login');closeModal('register');closeTryModal();closeVipModal();if(currentFeatureKey)closeFeatureModal()}
+});
+
+// Intersection Observer
+const io=new IntersectionObserver(es=>{
+  es.forEach(e=>{if(e.isIntersecting){e.target.classList.add('visible');io.unobserve(e.target)}})
+},{threshold:0.08});
+document.querySelectorAll('.card').forEach(c=>io.observe(c));
+
+// Card glow
+document.querySelectorAll('.card').forEach(card=>{
+  card.addEventListener('mousemove',e=>{
+    const r=card.getBoundingClientRect();
+    card.style.setProperty('--mx',((e.clientX-r.left)/r.width*100)+'%');
+    card.style.setProperty('--my',((e.clientY-r.top)/r.height*100)+'%');
+  });
+});
+
+// Strip markdown formatting from AI output
+function cleanMd(t){
+  if(!t) return t;
+  return t
+    .replace(/\*\*\*(.+?)\*\*\*/g,'$1')
+    .replace(/\*\*(.+?)\*\*/g,'$1')
+    .replace(/(?<!\w)\*(.+?)\*(?!\w)/g,'$1')
+    .replace(/^[\s]*\*\s+/gm,'• ')
+    .replace(/^[\s]*-\s+/gm,'• ')
+    .replace(/^#{1,6}\s+/gm,'')
+    .replace(/`{1,3}([^`]*)`{1,3}/g,'$1')
+    .replace(/^---+$/gm,'')
+    .replace(/^___+$/gm,'')
+    .replace(/[（(]\s*模板[样例]*\s*[）)]/g,'')
+    .replace(/模板样例/g,'')
+    .replace(/[\[【]\s*模板\s*[\]】]/g,'')
+    .replace(/^>\s?/gm,'');
+}
+
+// === Try-It Demo (Bio Generator) ===
+function openTryModal(){
+  const el=document.getElementById('tryModal');
+  el.classList.add('show');el.classList.remove('hiding');
+  document.body.style.overflow='hidden';
+}
+function closeTryModal(){
+  const el=document.getElementById('tryModal');
+  el.classList.add('hiding');
+  setTimeout(()=>{el.classList.remove('show','hiding');document.body.style.overflow=''},300);
+}
+document.getElementById('tryModal').addEventListener('click',e=>{
+  if(e.target.id==='tryModal') closeTryModal();
+});
+
+async function generateBio(){
+  if(!await checkUsageLimit()) return;
+  const input=document.getElementById('tryInput').value.trim();
+  const platform=document.getElementById('tryPlatform').value;
+  const tone=document.getElementById('tryTone').value;
+  const btn=document.getElementById('tryBtn');
+  const errEl=document.getElementById('tryError');
+  const resultEl=document.getElementById('tryResult');
+  const resultText=document.getElementById('tryResultText');
+
+  // Validate
+  if(!input){
+    errEl.textContent=currentLang==='zh'?'请输入关键词或自我描述':'Please enter keywords or self-description';
+    errEl.classList.add('show');return;
+  }
+  errEl.classList.remove('show');
+  resultEl.classList.remove('show');
+
+  // Loading state
+  btn.disabled=true;btn.classList.add('loading');
+
+  // Build prompt
+  const lang=currentLang==='zh'?'中文':'English';
+  const prompt=`你是一个专业的个人品牌文案专家。请根据以下信息，为用户生成一段适合 ${platform} 平台的个人简介。
+
+要求：
+- 语气风格：${tone}
+- 输出语言：${lang}
+- 符合 ${platform} 平台的字数限制和风格特点
+- 直接输出简介内容，不要加标题或解释
+- 禁止使用 Markdown 格式（禁止 ** * # --- 等标记符号），输出纯文本
+- 不要输出"模板""样例""模板样例"等字眼，不要用 [占位符] 形式，直接输出实际内容
+
+用户关键词：${input}`;
+
+  try{
+    const data=await callGeminiProxy('bio',
+      [{parts:[{text:prompt}]}],
+      {temperature:0.9,maxOutputTokens:500}
+    );
+    const text=data.candidates?.[0]?.content?.parts?.[0]?.text;
+    if(!text) throw new Error('Empty response');
+
+    resultText.textContent=cleanMd(text);
+    resultEl.classList.add('show');
+    // Save to history
+    saveHistory('bio', platform+' / '+tone+' / '+input.substring(0,60), text);
+    await incrementUsage();
+  }catch(e){
+    errEl.textContent=(currentLang==='zh'?'生成失败：':'Generation failed: ')+e.message;
+    errEl.classList.add('show');
+  }finally{
+    btn.disabled=false;btn.classList.remove('loading');
+  }
+}
+
+function copyResult(){
+  const text=document.getElementById('tryResultText').textContent;
+  navigator.clipboard.writeText(text).then(()=>{
+    const btn=document.querySelector('#tryResult .try-copy');
+    const orig=btn.textContent;
+    btn.textContent=currentLang==='zh'?'已复制':'Copied';
+    setTimeout(()=>{btn.textContent=orig},1500);
+  });
+}
+
+// === Generic Feature Modal System ===
+let currentFeatureKey=null;
+
+const FEATURE_CONFIGS={
+  avatar:{
+    title:{zh:'头像 & 封面图生成器',en:'Avatar & Cover Generator'},
+    desc:{zh:'描述你想要的风格，AI 将直接生成头像或封面图',en:'Describe your desired style, AI will generate an avatar or cover image'},
+    btn:{zh:'生成图片',en:'Generate Image'},
+    inputs:[
+      {type:'select',id:'fm_avatar_type',label:{zh:'生成类型',en:'Type'},options:[
+        {v:'头像',zh:'头像',en:'Avatar'},{v:'封面图',zh:'封面图',en:'Cover Image'}
+      ]},
+      {type:'select',id:'fm_avatar_style',label:{zh:'风格偏好',en:'Style'},options:[
+        {v:'赛博朋克',zh:'赛博朋克',en:'Cyberpunk'},{v:'极简',zh:'极简',en:'Minimal'},{v:'可爱卡通',zh:'可爱卡通',en:'Cute Cartoon'},
+        {v:'商务专业',zh:'商务专业',en:'Professional'},{v:'复古像素',zh:'复古像素',en:'Retro Pixel'},{v:'水彩插画',zh:'水彩插画',en:'Watercolor'},{v:'3D渲染',zh:'3D 渲染',en:'3D Render'}
+      ]},
+      {type:'textarea',id:'fm_avatar_desc',label:{zh:'描述 / 关键词',en:'Description / Keywords'},ph:{zh:'例如：一只戴墨镜的猫，紫色渐变背景，酷炫风格',en:'E.g.: A cat with sunglasses, purple gradient background, cool style'},rows:3}
+    ],
+    buildPrompt(inputs){
+      const type=inputs.fm_avatar_type,style=inputs.fm_avatar_style,desc=inputs.fm_avatar_desc;
+      if(type==='头像'){
+        return `Generate a high-quality profile avatar image. Style: ${style}. Description: ${desc}. The image should be square (1:1 ratio), suitable for use as a social media profile picture. Make it visually striking with clean composition and professional quality.`;
+      } else {
+        return `Generate a high-quality social media cover/banner image. Style: ${style}. Description: ${desc}. The image should be in landscape format (16:9 ratio), suitable for use as a Twitter/X header, LinkedIn banner, or YouTube cover. Make it visually striking with clean composition and professional quality.`;
+      }
+    }
+  },
+
+  copywriting:{
+    title:{zh:'社交文案生成器',en:'Social Post Generator'},
+    desc:{zh:'输入主题和平台，AI 生成爆款文案',en:'Enter topic and platform, AI generates viral copy'},
+    btn:{zh:'生成文案',en:'Generate Copy'},
+    inputs:[
+      {type:'select',id:'fm_copy_platform',label:{zh:'目标平台',en:'Platform'},options:[
+        {v:'朋友圈',zh:'微信朋友圈',en:'WeChat Moments'},{v:'X/Twitter',zh:'X / Twitter',en:'X / Twitter'},
+        {v:'小红书',zh:'小红书',en:'Xiaohongshu'},{v:'LinkedIn',zh:'LinkedIn',en:'LinkedIn'}
+      ]},
+      {type:'select',id:'fm_copy_tone',label:{zh:'文案风格',en:'Tone'},options:[
+        {v:'种草安利',zh:'种草安利',en:'Product Rec'},{v:'情感共鸣',zh:'情感共鸣',en:'Emotional'},
+        {v:'干货分享',zh:'干货分享',en:'Knowledge'},{v:'幽默搞笑',zh:'幽默搞笑',en:'Humorous'},{v:'正能量',zh:'正能量',en:'Motivational'}
+      ]},
+      {type:'textarea',id:'fm_copy_topic',label:{zh:'主题 / 内容',en:'Topic / Content'},ph:{zh:'例如：推荐一家超好吃的日料店',en:'E.g.: Recommend an amazing Japanese restaurant'},rows:3}
+    ],
+    buildPrompt(inputs){
+      const platform=inputs.fm_copy_platform,tone=inputs.fm_copy_tone,topic=inputs.fm_copy_topic;
+      const lang=currentLang==='zh'?'中文':'English';
+      return `你是一位社交媒体文案大师。请用${lang}为${platform}平台写一篇爆款文案。
+
+风格：${tone}
+主题：${topic}
+
+要求：
+- 符合${platform}平台的字数限制和内容风格
+- 开头要有吸引力（hook）
+- 包含适当的 emoji
+- 末尾加上 3-5 个相关 hashtag
+- 直接输出文案内容，不要加额外解释
+- 禁止使用 Markdown 格式（禁止 ** * # --- 等），不要出现"模板""样例"字眼，不要用 [占位符] 形式，直接输出实际内容`;
+    }
+  },
+
+  videoScript:{
+    title:{zh:'自我介绍视频脚本',en:'Self-Intro Video Script'},
+    desc:{zh:'输入你的背景信息，AI 生成视频脚本',en:'Enter your background, AI generates a video script'},
+    btn:{zh:'生成脚本',en:'Generate Script'},
+    inputs:[
+      {type:'select',id:'fm_video_dur',label:{zh:'视频时长',en:'Duration'},options:[
+        {v:'30秒',zh:'30 秒',en:'30 sec'},{v:'1分钟',zh:'1 分钟',en:'1 min'},{v:'3分钟',zh:'3 分钟',en:'3 min'}
+      ]},
+      {type:'select',id:'fm_video_scene',label:{zh:'使用场景',en:'Scenario'},options:[
+        {v:'求职面试',zh:'求职面试',en:'Job Interview'},{v:'社交媒体',zh:'社交媒体',en:'Social Media'},
+        {v:'商务路演',zh:'商务路演',en:'Business Pitch'},{v:'校园社团',zh:'校园社团',en:'Campus Club'}
+      ]},
+      {type:'textarea',id:'fm_video_bg',label:{zh:'个人背景',en:'Your Background'},ph:{zh:'例如：产品经理，5 年经验，喜欢旅行和摄影',en:'E.g.: Product manager, 5 years exp, loves travel and photography'},rows:3}
+    ],
+    buildPrompt(inputs){
+      const dur=inputs.fm_video_dur,scene=inputs.fm_video_scene,bg=inputs.fm_video_bg;
+      const lang=currentLang==='zh'?'中文':'English';
+      return `你是一位专业视频脚本编剧。请用${lang}写一个${dur}的自我介绍视频脚本。
+
+使用场景：${scene}
+个人背景：${bg}
+
+输出格式：
+【开场】（镜头提示 + 台词）
+【正文】（分段，每段含镜头提示 + 台词）
+【结尾】（镜头提示 + 台词 + CTA）
+
+要求：
+- 自然亲切，不要太生硬
+- 标注镜头建议（近景/中景/特写等）
+- 标注语气和节奏建议
+- 禁止使用 Markdown 格式（禁止 ** * # --- 等），不要出现"模板""样例"字眼，不要用 [占位符] 形式，直接输出实际内容`;
+    }
+  },
+
+  emailSig:{
+    title:{zh:'邮件签名生成器',en:'Email Signature Generator'},
+    desc:{zh:'输入基本信息，生成专业邮件签名',en:'Enter your info to generate a professional email signature'},
+    btn:{zh:'生成签名',en:'Generate Signature'},
+    inputs:[
+      {type:'input',id:'fm_sig_name',label:{zh:'姓名',en:'Name'},ph:{zh:'张三',en:'John Doe'}},
+      {type:'input',id:'fm_sig_title',label:{zh:'职位',en:'Job Title'},ph:{zh:'高级产品经理',en:'Senior Product Manager'}},
+      {type:'input',id:'fm_sig_company',label:{zh:'公司',en:'Company'},ph:{zh:'MiuPack',en:'MiuPack'}},
+      {type:'input',id:'fm_sig_email',label:{zh:'邮箱',en:'Email'},ph:{zh:'zhangsan@example.com',en:'john@example.com'}},
+      {type:'input',id:'fm_sig_phone',label:{zh:'电话（可选）',en:'Phone (optional)'},ph:{zh:'+86 138-xxxx-xxxx',en:'+1 (555) 000-0000'}},
+      {type:'select',id:'fm_sig_style',label:{zh:'风格',en:'Style'},options:[
+        {v:'简约商务',zh:'简约商务',en:'Clean Business'},{v:'创意科技',zh:'创意科技',en:'Creative Tech'},
+        {v:'温暖亲和',zh:'温暖亲和',en:'Warm & Friendly'}
+      ]}
+    ],
+    buildPrompt(inputs){
+      const lang=currentLang==='zh'?'中文':'English';
+      return `你是一位邮件签名设计专家。请用${lang}生成一个专业的纯文本邮件签名。
+
+信息：
+- 姓名：${inputs.fm_sig_name}
+- 职位：${inputs.fm_sig_title}
+- 公司：${inputs.fm_sig_company}
+- 邮箱：${inputs.fm_sig_email}
+- 电话：${inputs.fm_sig_phone||'无'}
+- 风格：${inputs.fm_sig_style}
+
+要求：
+- 用纯文本格式（适合复制到邮件客户端）
+- 使用分隔线和对齐
+- 简洁专业，包含社交链接占位符
+- 输出 2 个不同排版的版本
+- 禁止使用 Markdown 格式（禁止 ** * # --- 等），不要出现"模板""样例"字眼，不要用 [占位符] 形式，直接输出实际内容`;
+    }
+  },
+
+  resumePdf:{
+    title:{zh:'简历 PDF 一键美化',en:'Resume PDF Beautifier'},
+    desc:{zh:'粘贴简历内容，AI 美化后生成 PDF 下载',en:'Paste resume content, AI beautifies and generates downloadable PDF'},
+    btn:{zh:'美化 & 生成 PDF',en:'Beautify & Generate PDF'},
+    inputs:[
+      {type:'select',id:'fm_resume_industry',label:{zh:'目标行业',en:'Target Industry'},options:[
+        {v:'互联网/科技',zh:'互联网/科技',en:'Tech/IT'},{v:'金融',zh:'金融',en:'Finance'},
+        {v:'设计/创意',zh:'设计/创意',en:'Design/Creative'},{v:'教育',zh:'教育',en:'Education'},{v:'通用',zh:'通用',en:'General'}
+      ]},
+      {type:'select',id:'fm_resume_tpl',label:{zh:'简历模板',en:'Resume Template'},options:[
+        {v:'minimal',zh:'极简专业',en:'Minimal Pro'},{v:'modern',zh:'现代科技',en:'Modern Tech'},
+        {v:'elegant',zh:'优雅商务',en:'Elegant Business'},{v:'creative',zh:'创意设计',en:'Creative Design'}
+      ]},
+      {type:'textarea',id:'fm_resume_content',label:{zh:'简历内容',en:'Resume Content'},ph:{zh:'粘贴你的简历文本内容（姓名、联系方式、工作经历、教育背景、技能等）...',en:'Paste your resume text (name, contact, experience, education, skills)...'},rows:6}
+    ],
+    buildPrompt(inputs){
+      const industry=inputs.fm_resume_industry,content=inputs.fm_resume_content;
+      return `You are an expert HR consultant and resume optimizer. Analyze and beautify the following resume content for the ${industry} industry.
+
+IMPORTANT: You must output ONLY a valid JSON object (no markdown, no code fences, no explanation before/after). The JSON must follow this exact structure:
+
+{
+  "name": "Full Name",
+  "title": "Professional Title / Target Position",
+  "contact": {
+    "email": "email@example.com",
+    "phone": "+1-xxx-xxx-xxxx",
+    "location": "City, Country",
+    "linkedin": "",
+    "website": ""
+  },
+  "summary": "2-3 sentence professional summary highlighting key strengths",
+  "experience": [
+    {
+      "company": "Company Name",
+      "role": "Job Title",
+      "period": "2020.06 - 2023.12",
+      "location": "City",
+      "bullets": [
+        "Achievement-oriented bullet point with quantified results",
+        "Another bullet point using STAR method"
+      ]
+    }
+  ],
+  "education": [
+    {
+      "school": "University Name",
+      "degree": "Degree and Major",
+      "period": "2016 - 2020",
+      "details": "GPA, honors, relevant coursework"
+    }
+  ],
+  "skills": ["Skill 1", "Skill 2", "Skill 3"],
+  "languages": ["Language 1 (Level)", "Language 2 (Level)"],
+  "certifications": ["Certification 1", "Certification 2"],
+  "improvements": "Brief note on what was improved (this won't appear in PDF)"
+}
+
+Rules:
+- Keep the ORIGINAL LANGUAGE of the resume content (if Chinese input, output Chinese values; if English, output English)
+- Quantify achievements where possible
+- Use strong action verbs
+- Make bullet points concise and impactful
+- Fill in reasonable defaults if info is missing (use "" for truly unknown fields)
+- The "improvements" field should briefly describe what you changed
+
+Original resume content:
+${content}`;
+    }
+  },
+
+  brandLogo:{
+    title:{zh:'电子签名 & 印章生成',en:'E-Signature & Stamp Generator'},
+    desc:{zh:'输入信息，AI 直接生成电子签名或印章图片',en:'Enter info, AI generates e-signature/stamp images directly'},
+    btn:{zh:'生成图片',en:'Generate Image'},
+    inputs:[
+      {type:'select',id:'fm_stamp_type',label:{zh:'类型',en:'Type'},options:[
+        {v:'personal signature',zh:'个人签名',en:'Personal Signature'},{v:'cute stamp',zh:'可爱印章',en:'Cute Stamp'},
+        {v:'business card signature',zh:'微信签名档',en:'WeChat Signature Card'}
+      ]},
+      {type:'input',id:'fm_stamp_name',label:{zh:'姓名 / 品牌名',en:'Name / Brand'},ph:{zh:'MiuPack',en:'MiuPack'}},
+      {type:'textarea',id:'fm_stamp_extra',label:{zh:'附加信息（可选）',en:'Extra Info (optional)'},ph:{zh:'例如：包含职位、联系方式、座右铭等',en:'E.g.: Include title, contact, motto, etc.'},rows:2}
+    ],
+    buildPrompt(inputs){
+      const type=inputs.fm_stamp_type,name=inputs.fm_stamp_name,extra=inputs.fm_stamp_extra;
+      if(type==='cute stamp'){
+        return `Generate a cute, kawaii-style digital stamp/seal image with the name "${name}". ${extra?'Additional info: '+extra+'. ':''} The stamp should be circular or rounded square, with a clean transparent-feeling background, cute decorative elements (stars, hearts, paw prints), and the text clearly readable. Style: adorable, professional yet playful. Colors: use purple and cyan tones.`;
+      } else if(type==='personal signature'){
+        return `Generate an elegant handwritten-style digital signature image of the name "${name}". ${extra?'Additional info: '+extra+'. ':''} The signature should look like a real pen signature with natural flow and character. Clean background, high contrast. Style: refined and professional.`;
+      } else {
+        return `Generate a professional digital business card / signature card image for "${name}". ${extra?'Additional info: '+extra+'. ':''} Include the name prominently, with a modern minimal design. Use a dark premium background with subtle gradient accents in purple and cyan. The card should be in landscape format, suitable for WeChat/social media signature.`;
+      }
+    }
+  },
+
+  hashtag:{
+    title:{zh:'Hashtag 智能推荐器',en:'Smart Hashtag Recommender'},
+    desc:{zh:'输入一句话，AI 推荐高热度 + 低竞争的 hashtag',en:'Enter a sentence, AI recommends high-traffic low-competition hashtags'},
+    btn:{zh:'推荐 Hashtag',en:'Recommend Hashtags'},
+    inputs:[
+      {type:'select',id:'fm_hash_platform',label:{zh:'目标平台',en:'Platform'},options:[
+        {v:'小红书',zh:'小红书',en:'Xiaohongshu'},{v:'X/Twitter',zh:'X / Twitter',en:'X / Twitter'},
+        {v:'抖音',zh:'抖音',en:'Douyin/TikTok'},{v:'Instagram',zh:'Instagram',en:'Instagram'},{v:'全平台',zh:'全平台',en:'All Platforms'}
+      ]},
+      {type:'textarea',id:'fm_hash_content',label:{zh:'内容描述',en:'Content Description'},ph:{zh:'例如：分享一个适合新手的理财方法',en:'E.g.: Share a budgeting tip for beginners'},rows:3}
+    ],
+    buildPrompt(inputs){
+      const platform=inputs.fm_hash_platform,content=inputs.fm_hash_content;
+      const lang=currentLang==='zh'?'中文':'English';
+      return `你是一位社交媒体增长专家。请用${lang}为以下内容推荐 hashtag。
+
+目标平台：${platform}
+内容描述：${content}
+
+请输出：
+1. 高热度标签（5个）—— 搜索量大，适合获取曝光
+2. 中等竞争标签（5个）—— 有一定搜索量但竞争适中
+3. 低竞争长尾标签（5个）—— 精准但竞争小，适合新号
+4. 推荐组合方案（从以上标签中选 3-5 个最佳搭配）
+5. 使用建议（发布时间、标签顺序等）
+
+每个标签请标注预估热度等级（🔥🔥🔥 / 🔥🔥 / 🔥）
+
+注意：禁止使用 Markdown 格式（禁止 ** * # --- 等标记），不要出现"模板""样例"字眼，不要用 [占位符] 形式，直接输出实际内容`;
+    }
+  },
+
+  calendar:{
+    title:{zh:'30 天内容日历生成器',en:'30-Day Content Calendar'},
+    desc:{zh:'输入你的 IP 定位，AI 生成完整发帖计划',en:'Enter your niche, AI generates a complete posting plan'},
+    btn:{zh:'生成日历',en:'Generate Calendar'},
+    inputs:[
+      {type:'select',id:'fm_cal_platform',label:{zh:'主要平台',en:'Main Platform'},options:[
+        {v:'小红书',zh:'小红书',en:'Xiaohongshu'},{v:'X/Twitter',zh:'X / Twitter',en:'X / Twitter'},
+        {v:'抖音',zh:'抖音',en:'Douyin/TikTok'},{v:'微信公众号',zh:'微信公众号',en:'WeChat Official Account'}
+      ]},
+      {type:'select',id:'fm_cal_freq',label:{zh:'发帖频率',en:'Posting Frequency'},options:[
+        {v:'每天1篇',zh:'每天 1 篇',en:'Daily'},{v:'每周3篇',zh:'每周 3 篇',en:'3x/week'},{v:'每周5篇',zh:'每周 5 篇',en:'5x/week'}
+      ]},
+      {type:'textarea',id:'fm_cal_niche',label:{zh:'IP 定位 / 账号主题',en:'Niche / Account Theme'},ph:{zh:'例如：科技数码博主，专注手机和耳机测评',en:'E.g.: Tech blogger, focused on phone and earphone reviews'},rows:3}
+    ],
+    buildPrompt(inputs){
+      const platform=inputs.fm_cal_platform,freq=inputs.fm_cal_freq,niche=inputs.fm_cal_niche;
+      const lang=currentLang==='zh'?'中文':'English';
+      return `你是一位社交媒体运营专家。请用${lang}生成一个 30 天的内容日历。
+
+平台：${platform}
+频率：${freq}
+IP定位：${niche}
+
+请按以下格式输出前 7 天的详细计划（其余 23 天输出简要主题）：
+
+【第 X 天】
+- 主题：
+- 内容类型：（图文/视频/直播等）
+- 文案草稿：（50-100字概要）
+- 最佳发布时间：
+- 推荐 Hashtag：
+
+最后给出：
+1. 整月内容主题规划（4 周分别侧重什么）
+2. 爆款内容建议（哪些选题最容易火）
+
+注意：禁止使用 Markdown 格式（禁止 ** * # --- 等标记），不要出现"模板""样例"字眼，不要用 [占位符] 形式，直接输出实际内容`;
+    }
+  },
+
+  ipDiagnosis:{
+    title:{zh:'IP 健康度诊断',en:'IP Health Diagnosis'},
+    desc:{zh:'输入社交链接或简介，AI 从 4 个维度打分并给出优化建议',en:'Enter social links or bio, AI scores from 4 dimensions with optimization tips'},
+    btn:{zh:'开始诊断',en:'Start Diagnosis'},
+    inputs:[
+      {type:'select',id:'fm_ip_platform',label:{zh:'主要平台',en:'Main Platform'},options:[
+        {v:'X/Twitter',zh:'X / Twitter',en:'X / Twitter'},{v:'小红书',zh:'小红书',en:'Xiaohongshu'},
+        {v:'LinkedIn',zh:'LinkedIn',en:'LinkedIn'},{v:'抖音',zh:'抖音',en:'Douyin/TikTok'},{v:'综合',zh:'综合诊断',en:'Overall'}
+      ]},
+      {type:'textarea',id:'fm_ip_content',label:{zh:'个人简介 / 社交链接',en:'Bio / Social Links'},ph:{zh:'粘贴你的个人简介、社交主页链接或账号描述...',en:'Paste your bio, social profile links or account description...'},rows:5}
+    ],
+    buildPrompt(inputs){
+      const platform=inputs.fm_ip_platform,content=inputs.fm_ip_content;
+      const lang=currentLang==='zh'?'中文':'English';
+      return `你是一位个人品牌诊断专家。请用${lang}对以下个人品牌进行全面诊断。
+
+平台：${platform}
+用户输入：
+${content}
+
+请从以下 4 个维度进行打分（每项 0-100 分）并给出分析：
+
+📊 诊断评分：
+1. 🎀 可爱度 / 亲和力（Likability）
+2. 💼 专业度（Professionalism）
+3. 📡 传播力（Virality Potential）
+4. 🔗 一致性（Brand Consistency）
+
+📋 综合评级：（S/A/B/C/D）
+
+🚨 3 个致命问题：
+（具体指出问题所在）
+
+✅ 具体优化建议：
+（针对每个问题给出可操作的改进方案）
+
+🔄 优化后的改写版本：
+（直接给出优化后的简介/描述）
+
+注意：禁止使用 Markdown 格式（禁止 ** * # --- 等标记），不要出现"模板""样例"字眼，不要用 [占位符] 形式，直接输出实际内容`;
+    }
+  }
+};
+
+function openFeatureModal(key){
+  const cfg=FEATURE_CONFIGS[key];
+  if(!cfg) return;
+  currentFeatureKey=key;
+  const lang=currentLang;
+  document.getElementById('fmTitle').textContent=cfg.title[lang];
+  document.getElementById('fmDesc').textContent=cfg.desc[lang];
+  document.getElementById('fmBtnText').textContent=cfg.btn[lang];
+  document.getElementById('fmError').classList.remove('show');
+  document.getElementById('fmResult').classList.remove('show');
+  document.getElementById('fmBtn').style.display='';
+
+  // Build inputs
+  const container=document.getElementById('fmInputs');
+  container.innerHTML='';
+  const selectInputs=cfg.inputs.filter(i=>i.type==='select');
+  const otherInputs=cfg.inputs.filter(i=>i.type!=='select');
+
+  // Selects in a row if 2+
+  if(selectInputs.length>=2){
+    const row=document.createElement('div');row.className='fm-row';
+    selectInputs.forEach(inp=>{
+      const div=document.createElement('div');
+      div.innerHTML=`<label>${inp.label[lang]}</label><select id="${inp.id}">${inp.options.map(o=>`<option value="${o.v}">${o[lang]}</option>`).join('')}</select>`;
+      row.appendChild(div);
+    });
+    container.appendChild(row);
+  } else {
+    selectInputs.forEach(inp=>{
+      const div=document.createElement('div');
+      div.innerHTML=`<label>${inp.label[lang]}</label><select id="${inp.id}">${inp.options.map(o=>`<option value="${o.v}">${o[lang]}</option>`).join('')}</select>`;
+      container.appendChild(div);
+    });
+  }
+
+  otherInputs.forEach(inp=>{
+    const div=document.createElement('div');
+    if(inp.type==='textarea'){
+      div.innerHTML=`<label>${inp.label[lang]}</label><textarea id="${inp.id}" rows="${inp.rows||3}" placeholder="${inp.ph?inp.ph[lang]:''}"></textarea>`;
+    } else {
+      div.innerHTML=`<label>${inp.label[lang]}</label><input type="text" id="${inp.id}" placeholder="${inp.ph?inp.ph[lang]:''}">`;
+    }
+    container.appendChild(div);
+  });
+
+  const el=document.getElementById('featureModal');
+  el.classList.add('show');el.classList.remove('hiding');
+  document.body.style.overflow='hidden';
+}
+
+function closeFeatureModal(){
+  const el=document.getElementById('featureModal');
+  el.classList.add('hiding');
+  setTimeout(()=>{el.classList.remove('show','hiding');document.body.style.overflow=''},300);
+}
+document.getElementById('featureModal').addEventListener('click',e=>{
+  if(e.target.id==='featureModal') closeFeatureModal();
+});
+
+async function generateFeature(){
+  if(!await checkUsageLimit()) return;
+  const cfg=FEATURE_CONFIGS[currentFeatureKey];
+  if(!cfg) return;
+  const btn=document.getElementById('fmBtn');
+  const errEl=document.getElementById('fmError');
+  const resultEl=document.getElementById('fmResult');
+  const resultContent=document.getElementById('fmResultContent');
+
+  // Collect inputs
+  const inputs={};
+  let hasEmpty=false;
+  cfg.inputs.forEach(inp=>{
+    const el=document.getElementById(inp.id);
+    if(el) inputs[inp.id]=el.value.trim();
+    if(inp.type==='textarea' && !el.value.trim()) hasEmpty=true;
+  });
+
+  if(hasEmpty){
+    errEl.textContent=currentLang==='zh'?'请填写必要的输入内容':'Please fill in the required fields';
+    errEl.classList.add('show');return;
+  }
+  errEl.classList.remove('show');
+  resultEl.classList.remove('show');
+  btn.disabled=true;btn.classList.add('loading');
+
+  const prompt=cfg.buildPrompt(inputs);
+  const feature=FEATURES[currentFeatureKey];
+  const isImage=feature&&feature.type==='image';
+
+  try{
+    const genConfig={temperature:currentFeatureKey==='resumePdf'?0.4:0.9,maxOutputTokens:isImage?1024:(currentFeatureKey==='resumePdf'?4096:2048)};
+    if(isImage) genConfig.responseModalities=['TEXT','IMAGE'];
+
+    const data=await callGeminiProxy(currentFeatureKey,
+      [{parts:[{text:prompt}]}],
+      genConfig
+    );
+    const parts=data.candidates?.[0]?.content?.parts;
+    if(!parts||!parts.length) throw new Error('Empty response');
+
+    // Special handling for Resume PDF
+    if(currentFeatureKey==='resumePdf'){
+      const rawText=parts.map(p=>p.text||'').join('');
+      // Extract JSON from response (handle possible markdown fences)
+      let jsonStr=rawText;
+      const fenceMatch=rawText.match(/```(?:json)?\s*([\s\S]*?)```/);
+      if(fenceMatch) jsonStr=fenceMatch[1];
+      // Try to find JSON object
+      const jsonMatch=jsonStr.match(/\{[\s\S]*\}/);
+      if(!jsonMatch) throw new Error(currentLang==='zh'?'AI 未返回有效的简历数据，请重试':'AI did not return valid resume data, please retry');
+
+      const resumeData=JSON.parse(jsonMatch[0]);
+      lastResumeData=resumeData;
+      lastResumeTpl=document.getElementById('fm_resume_tpl')?.value||'minimal';
+
+      // Show parsed resume info + PDF controls
+      let rhtml='';
+      if(resumeData.improvements){
+        rhtml+=`<div style="padding:10px 14px;border-radius:8px;background:rgba(139,92,246,0.08);border:1px solid rgba(139,92,246,0.15);margin-bottom:14px;font-size:12px;color:var(--text-primary);line-height:1.6">
+          <strong style="color:var(--cyan)">${currentLang==='zh'?'💡 AI 优化说明：':'💡 AI Improvements:'}</strong><br>${resumeData.improvements.replace(/\n/g,'<br>')}
+        </div>`;
+      }
+      rhtml+=`<div style="padding:14px;border-radius:10px;background:rgba(255,255,255,0.04);border:1px solid var(--card-border);margin-bottom:12px">
+        <div style="font-size:16px;font-weight:800;color:#fff;margin-bottom:4px">${resumeData.name||''}</div>
+        <div style="font-size:12px;color:var(--cyan);margin-bottom:8px">${resumeData.title||''}</div>
+        <div style="font-size:11px;color:var(--text-secondary)">${[resumeData.contact?.email,resumeData.contact?.phone,resumeData.contact?.location].filter(Boolean).join(' · ')}</div>
+        ${resumeData.summary?'<div style="font-size:12px;color:var(--text-primary);margin-top:8px;line-height:1.6">'+resumeData.summary+'</div>':''}
+        ${(resumeData.experience||[]).length?'<div style="font-size:11px;color:var(--text-secondary);margin-top:8px">'+resumeData.experience.length+(currentLang==='zh'?' 段工作经历':' work experiences')+' · '+(resumeData.skills||[]).length+(currentLang==='zh'?' 项技能':' skills')+'</div>':''}
+      </div>`;
+
+      // Template selector
+      const tpls=[
+        {v:'minimal',icon:'📋',zh:'极简专业',en:'Minimal Pro',dzh:'黑白简约，适合传统行业',den:'Clean B&W for traditional industries'},
+        {v:'modern',icon:'💜',zh:'现代科技',en:'Modern Tech',dzh:'紫蓝渐变，适合互联网/科技',den:'Purple-blue gradient for tech'},
+        {v:'elegant',icon:'🏛️',zh:'优雅商务',en:'Elegant Business',dzh:'深蓝色调，适合金融/咨询',den:'Navy tone for finance/consulting'},
+        {v:'creative',icon:'🎨',zh:'创意设计',en:'Creative Design',dzh:'侧边栏布局，适合设计/创意',den:'Sidebar layout for creative roles'}
+      ];
+      rhtml+=`<div style="font-size:12px;font-weight:600;color:var(--text-secondary);margin-bottom:6px">${currentLang==='zh'?'选择模板样式：':'Choose template:'}</div>`;
+      rhtml+=`<div class="resume-template-grid">`;
+      tpls.forEach(t=>{
+        const isActive=t.v===lastResumeTpl?'active':'';
+        rhtml+=`<div class="resume-tpl-card ${isActive}" onclick="selectResumeTpl('${t.v}',this)">
+          <div class="tpl-icon">${t.icon}</div>
+          <div class="tpl-name">${currentLang==='zh'?t.zh:t.en}</div>
+          <div class="tpl-desc">${currentLang==='zh'?t.dzh:t.den}</div>
+        </div>`;
+      });
+      rhtml+=`</div>`;
+
+      rhtml+=`<div class="pdf-actions">
+        <button class="pdf-download-btn" onclick="downloadResumePdf()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          ${currentLang==='zh'?'下载 PDF':'Download PDF'}
+        </button>
+        <button class="pdf-preview-btn" onclick="previewResumePdf()">${currentLang==='zh'?'👁 预览':'👁 Preview'}</button>
+      </div>`;
+
+      resultContent.innerHTML=rhtml;
+      document.getElementById('fmResultLabel').textContent=currentLang==='zh'?'简历美化完成':'Resume Beautified';
+      resultEl.classList.add('show');
+      const inputSummary=Object.values(inputs).filter(Boolean).join(' / ').substring(0,200);
+      saveHistory(currentFeatureKey, inputSummary, resumeData.improvements||resumeData.summary||'');
+      await incrementUsage();
+    } else {
+    // Process response parts (non-resume)
+    let html='';
+    let hasImage=false;
+    parts.forEach(p=>{
+      if(p.text) html+='<div>'+cleanMd(p.text).replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>')+'</div>';
+      if(p.inlineData){
+        hasImage=true;
+        html+='<img class="gen-img" src="data:'+p.inlineData.mimeType+';base64,'+p.inlineData.data+'" alt="Generated">';
+      }
+    });
+    // Add image download controls if images present
+    if(hasImage){
+      const szLabel=currentLang==='zh'?'导出尺寸':'Export Size';
+      const dlLabel=currentLang==='zh'?'保存图片':'Save Image';
+      html+=`<div class="img-actions">
+        <label>${szLabel}</label>
+        <select id="imgSizeSelect">
+          <option value="original">${currentLang==='zh'?'原始尺寸':'Original'}</option>
+          <option value="512x512">512 × 512</option>
+          <option value="1024x1024">1024 × 1024</option>
+          <option value="800x800">800 × 800</option>
+          <option value="400x400">400 × 400</option>
+          <option value="1500x500">1500 × 500 (X Header)</option>
+          <option value="1584x396">1584 × 396 (LinkedIn)</option>
+          <option value="1280x720">1280 × 720 (16:9)</option>
+          <option value="1080x1080">1080 × 1080 (Instagram)</option>
+        </select>
+        <button class="img-download-btn" onclick="downloadGenImage()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          ${dlLabel}
+        </button>
+      </div>`;
+    }
+    resultContent.innerHTML=html;
+    document.getElementById('fmResultLabel').textContent=currentLang==='zh'?'AI 生成结果':'AI Generated Result';
+    resultEl.classList.add('show');
+    // Save to history
+    const inputSummary=Object.values(inputs).filter(Boolean).join(' / ').substring(0,200);
+    const plainText=parts.map(p=>p.text||'[image]').join('\n');
+    saveHistory(currentFeatureKey, inputSummary, plainText);
+    await incrementUsage();
+    } // end else (non-resume)
+  }catch(e){
+    errEl.textContent=(currentLang==='zh'?'生成失败：':'Generation failed: ')+e.message;
+    errEl.classList.add('show');
+  }finally{
+    btn.disabled=false;btn.classList.remove('loading');
+  }
+}
+
+function copyFeatureResult(){
+  const el=document.getElementById('fmResultContent');
+  const text=el.innerText||el.textContent;
+  navigator.clipboard.writeText(text).then(()=>{
+    const btn=document.querySelector('#fmResult .try-copy');
+    const orig=btn.textContent;
+    btn.textContent=currentLang==='zh'?'已复制':'Copied';
+    setTimeout(()=>{btn.textContent=orig},1500);
+  });
+}
+
+function downloadGenImage(){
+  const img=document.querySelector('#fmResultContent img.gen-img');
+  if(!img) return;
+  const sizeVal=document.getElementById('imgSizeSelect').value;
+  const canvas=document.createElement('canvas');
+  const ctx=canvas.getContext('2d');
+
+  if(sizeVal==='original'){
+    canvas.width=img.naturalWidth;
+    canvas.height=img.naturalHeight;
+  } else {
+    const [w,h]=sizeVal.split('x').map(Number);
+    canvas.width=w;
+    canvas.height=h;
+  }
+  ctx.drawImage(img,0,0,canvas.width,canvas.height);
+
+  canvas.toBlob(blob=>{
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement('a');
+    const featureName=currentFeatureKey||'miupack';
+    a.href=url;
+    a.download=featureName+'_'+canvas.width+'x'+canvas.height+'.png';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    // Feedback
+    const btn=document.querySelector('.img-download-btn');
+    if(btn){
+      const orig=btn.innerHTML;
+      btn.textContent=currentLang==='zh'?'已保存！':'Saved!';
+      setTimeout(()=>{btn.innerHTML=orig},1500);
+    }
+  },'image/png');
+}
+
+// === Resume PDF Templates & Download ===
+let lastResumeData=null;
+let lastResumeTpl='minimal';
+
+function selectResumeTpl(tpl, el){
+  lastResumeTpl=tpl;
+  document.querySelectorAll('.resume-tpl-card').forEach(c=>c.classList.remove('active'));
+  el.classList.add('active');
+}
+
+function buildResumeHTML(data, tpl){
+  const d=data;
+  const name=d.name||'';
+  const title=d.title||'';
+  const c=d.contact||{};
+  const contactParts=[c.email,c.phone,c.location,c.linkedin,c.website].filter(Boolean);
+  const summary=d.summary||'';
+  const exp=d.experience||[];
+  const edu=d.education||[];
+  const skills=d.skills||[];
+  const langs=d.languages||[];
+  const certs=d.certifications||[];
+
+  // Template styles
+  const styles={
+    minimal:{
+      accent:'#1a1a1a',accentLight:'#555',headerBg:'#fff',headerBorder:'2px solid #1a1a1a',
+      sectionColor:'#1a1a1a',bodyFont:"'Noto Sans SC','Helvetica Neue',Arial,sans-serif",
+      headerAlign:'left',nameSize:'28px',layout:'single'
+    },
+    modern:{
+      accent:'#6366f1',accentLight:'#818cf8',headerBg:'linear-gradient(135deg,#6366f1,#06b6d4)',headerBorder:'none',
+      sectionColor:'#6366f1',bodyFont:"'Noto Sans SC','Helvetica Neue',Arial,sans-serif",
+      headerAlign:'left',nameSize:'26px',layout:'single'
+    },
+    elegant:{
+      accent:'#1e3a5f',accentLight:'#4a7ab5',headerBg:'#1e3a5f',headerBorder:'none',
+      sectionColor:'#1e3a5f',bodyFont:"'Noto Sans SC',Georgia,'Times New Roman',serif",
+      headerAlign:'center',nameSize:'30px',layout:'single'
+    },
+    creative:{
+      accent:'#e11d48',accentLight:'#fb7185',headerBg:'#fff',headerBorder:'4px solid #e11d48',
+      sectionColor:'#e11d48',bodyFont:"'Noto Sans SC','Helvetica Neue',Arial,sans-serif",
+      headerAlign:'left',nameSize:'32px',layout:'sidebar'
+    }
+  };
+  const s=styles[tpl]||styles.minimal;
+
+  let headerHTML='';
+  if(tpl==='modern'||tpl==='elegant'){
+    const txtColor='#fff';
+    headerHTML=`<div style="background:${s.headerBg};padding:32px 40px;${tpl==='elegant'?'text-align:center;':''}">
+      <div style="font-size:${s.nameSize};font-weight:900;color:${txtColor};letter-spacing:1px;margin-bottom:4px">${name}</div>
+      ${title?`<div style="font-size:14px;color:rgba(255,255,255,0.85);margin-bottom:10px;font-weight:500">${title}</div>`:''}
+      <div style="font-size:11px;color:rgba(255,255,255,0.7)">${contactParts.join('  ·  ')}</div>
+    </div>`;
+  } else if(tpl==='creative'){
+    headerHTML=`<div style="padding:28px 40px 20px;border-bottom:${s.headerBorder}">
+      <div style="font-size:${s.nameSize};font-weight:900;color:${s.accent};letter-spacing:1px">${name}</div>
+      ${title?`<div style="font-size:14px;color:#666;margin-top:4px">${title}</div>`:''}
+    </div>`;
+  } else {
+    headerHTML=`<div style="padding:32px 40px 20px;border-bottom:${s.headerBorder}">
+      <div style="font-size:${s.nameSize};font-weight:900;color:${s.accent};letter-spacing:1px">${name}</div>
+      ${title?`<div style="font-size:13px;color:${s.accentLight};margin-top:4px;font-weight:500">${title}</div>`:''}
+      <div style="font-size:11px;color:#888;margin-top:8px">${contactParts.join('  |  ')}</div>
+    </div>`;
+  }
+
+  function sectionTitle(text){
+    if(tpl==='modern') return `<div style="font-size:13px;font-weight:800;color:${s.sectionColor};text-transform:uppercase;letter-spacing:2px;margin:22px 0 10px;padding-bottom:6px;border-bottom:2px solid ${s.accent}">${text}</div>`;
+    if(tpl==='elegant') return `<div style="font-size:14px;font-weight:700;color:${s.sectionColor};text-align:center;margin:22px 0 10px;letter-spacing:3px;text-transform:uppercase"><span style="border-bottom:1px solid ${s.accentLight};padding-bottom:3px">${text}</span></div>`;
+    if(tpl==='creative') return `<div style="font-size:12px;font-weight:800;color:${s.accent};text-transform:uppercase;letter-spacing:2px;margin:20px 0 8px;display:flex;align-items:center;gap:8px"><span style="width:4px;height:16px;background:${s.accent};border-radius:2px;display:inline-block"></span>${text}</div>`;
+    return `<div style="font-size:12px;font-weight:800;color:${s.sectionColor};text-transform:uppercase;letter-spacing:2px;margin:22px 0 8px;border-bottom:1px solid #ddd;padding-bottom:4px">${text}</div>`;
+  }
+
+  let bodyHTML='';
+
+  if(summary){
+    bodyHTML+=sectionTitle(currentLang==='zh'?'个人简介':'SUMMARY');
+    bodyHTML+=`<div style="font-size:12px;color:#444;line-height:1.7">${summary}</div>`;
+  }
+
+  if(exp.length){
+    bodyHTML+=sectionTitle(currentLang==='zh'?'工作经历':'EXPERIENCE');
+    exp.forEach(e=>{
+      bodyHTML+=`<div style="margin-bottom:14px">
+        <div style="display:flex;justify-content:space-between;align-items:baseline;flex-wrap:wrap">
+          <div style="font-size:13px;font-weight:700;color:#222">${e.role||''}</div>
+          <div style="font-size:11px;color:#888">${e.period||''}</div>
+        </div>
+        <div style="font-size:12px;color:${s.accentLight};font-weight:500;margin:2px 0 6px">${e.company||''}${e.location?' · '+e.location:''}</div>
+        ${(e.bullets||[]).length?'<ul style="margin:0;padding-left:18px">'+e.bullets.map(b=>`<li style="font-size:11.5px;color:#444;line-height:1.65;margin-bottom:3px">${b}</li>`).join('')+'</ul>':''}
+      </div>`;
+    });
+  }
+
+  if(edu.length){
+    bodyHTML+=sectionTitle(currentLang==='zh'?'教育背景':'EDUCATION');
+    edu.forEach(e=>{
+      bodyHTML+=`<div style="margin-bottom:10px">
+        <div style="display:flex;justify-content:space-between;align-items:baseline;flex-wrap:wrap">
+          <div style="font-size:13px;font-weight:700;color:#222">${e.school||''}</div>
+          <div style="font-size:11px;color:#888">${e.period||''}</div>
+        </div>
+        <div style="font-size:12px;color:#555">${e.degree||''}${e.details?' — '+e.details:''}</div>
+      </div>`;
+    });
+  }
+
+  if(skills.length){
+    bodyHTML+=sectionTitle(currentLang==='zh'?'专业技能':'SKILLS');
+    if(tpl==='creative'){
+      bodyHTML+=`<div style="display:flex;flex-wrap:wrap;gap:6px">${skills.map(s=>`<span style="padding:3px 10px;border-radius:4px;font-size:11px;background:#fef2f2;color:#e11d48;font-weight:500">${s}</span>`).join('')}</div>`;
+    } else if(tpl==='modern'){
+      bodyHTML+=`<div style="display:flex;flex-wrap:wrap;gap:6px">${skills.map(s=>`<span style="padding:3px 10px;border-radius:4px;font-size:11px;background:#eef2ff;color:#6366f1;font-weight:500">${s}</span>`).join('')}</div>`;
+    } else {
+      bodyHTML+=`<div style="font-size:12px;color:#444;line-height:1.8">${skills.join('  ·  ')}</div>`;
+    }
+  }
+
+  if(langs.length){
+    bodyHTML+=sectionTitle(currentLang==='zh'?'语言能力':'LANGUAGES');
+    bodyHTML+=`<div style="font-size:12px;color:#444">${langs.join('  |  ')}</div>`;
+  }
+
+  if(certs.length){
+    bodyHTML+=sectionTitle(currentLang==='zh'?'证书资质':'CERTIFICATIONS');
+    bodyHTML+=`<div style="font-size:12px;color:#444">${certs.join('  |  ')}</div>`;
+  }
+
+  let contactSidebar='';
+  if(tpl==='creative'){
+    contactSidebar=`<div style="padding:20px;font-size:11px;color:#666;line-height:1.8;border-bottom:1px solid #eee">
+      ${c.email?'<div>📧 '+c.email+'</div>':''}
+      ${c.phone?'<div>📱 '+c.phone+'</div>':''}
+      ${c.location?'<div>📍 '+c.location+'</div>':''}
+      ${c.linkedin?'<div>🔗 '+c.linkedin+'</div>':''}
+      ${c.website?'<div>🌐 '+c.website+'</div>':''}
+    </div>`;
+  }
+
+  const pageStyle=`font-family:${s.bodyFont};color:#333;background:#fff;width:100%;`;
+
+  if(tpl==='creative'){
+    return `<div style="${pageStyle}">
+      ${headerHTML}
+      <div style="display:flex;min-height:600px">
+        <div style="width:200px;background:#fafafa;border-right:1px solid #eee;flex-shrink:0">
+          ${contactSidebar}
+          <div style="padding:0 20px">${skills.length?sectionTitle(currentLang==='zh'?'专业技能':'SKILLS')+'<div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:16px">'+skills.map(sk=>`<span style="padding:2px 8px;border-radius:4px;font-size:10px;background:#fef2f2;color:#e11d48;font-weight:500">${sk}</span>`).join('')+'</div>':''}
+          ${langs.length?sectionTitle(currentLang==='zh'?'语言':'LANGUAGES')+'<div style="font-size:11px;color:#666;line-height:1.7">'+langs.join('<br>')+'</div>':''}
+          ${certs.length?sectionTitle(currentLang==='zh'?'证书':'CERTS')+'<div style="font-size:11px;color:#666;line-height:1.7">'+certs.join('<br>')+'</div>':''}</div>
+        </div>
+        <div style="flex:1;padding:8px 32px 32px">${summary?sectionTitle(currentLang==='zh'?'个人简介':'SUMMARY')+'<div style="font-size:12px;color:#444;line-height:1.7">'+summary+'</div>':''}
+          ${exp.length?sectionTitle(currentLang==='zh'?'工作经历':'EXPERIENCE')+exp.map(e=>`<div style="margin-bottom:14px"><div style="display:flex;justify-content:space-between;flex-wrap:wrap"><div style="font-size:13px;font-weight:700;color:#222">${e.role||''}</div><div style="font-size:11px;color:#888">${e.period||''}</div></div><div style="font-size:12px;color:${s.accentLight};font-weight:500;margin:2px 0 6px">${e.company||''}</div>${(e.bullets||[]).length?'<ul style="margin:0;padding-left:18px">'+e.bullets.map(b=>`<li style="font-size:11.5px;color:#444;line-height:1.65;margin-bottom:3px">${b}</li>`).join('')+'</ul>':''}</div>`).join(''):''}
+          ${edu.length?sectionTitle(currentLang==='zh'?'教育背景':'EDUCATION')+edu.map(e=>`<div style="margin-bottom:10px"><div style="display:flex;justify-content:space-between;flex-wrap:wrap"><div style="font-size:13px;font-weight:700;color:#222">${e.school||''}</div><div style="font-size:11px;color:#888">${e.period||''}</div></div><div style="font-size:12px;color:#555">${e.degree||''}</div></div>`).join(''):''}
+        </div>
+      </div>
+    </div>`;
+  }
+
+  return `<div style="${pageStyle}">
+    ${headerHTML}
+    <div style="padding:8px 40px 40px">${bodyHTML}</div>
+  </div>`;
+}
+
+function previewResumePdf(){
+  if(!lastResumeData) return;
+  const tpl=lastResumeTpl;
+  const html=buildResumeHTML(lastResumeData,tpl);
+  document.getElementById('resumePdfContainer').innerHTML=html;
+  document.getElementById('resumePreviewOverlay').classList.add('show');
+  document.body.style.overflow='hidden';
+}
+
+function closeResumePreview(){
+  document.getElementById('resumePreviewOverlay').classList.remove('show');
+  document.body.style.overflow='hidden'; // keep feature modal open
+}
+document.getElementById('resumePreviewOverlay').addEventListener('click',e=>{
+  if(e.target.id==='resumePreviewOverlay') closeResumePreview();
+});
+
+async function downloadResumePdf(){
+  if(!lastResumeData) return;
+  const btn=document.querySelector('.pdf-download-btn');
+  if(btn){btn.disabled=true;btn.textContent=currentLang==='zh'?'生成中...':'Generating...';}
+
+  const html=buildResumeHTML(lastResumeData,lastResumeTpl);
+  const container=document.createElement('div');
+  container.style.cssText='position:absolute;left:-9999px;top:0;width:794px;';
+  container.innerHTML=html;
+  document.body.appendChild(container);
+
+  try{
+    const opt={
+      margin:[0,0,0,0],
+      filename:(lastResumeData.name||'resume')+'_MiuPack.pdf',
+      image:{type:'jpeg',quality:0.98},
+      html2canvas:{scale:2,useCORS:true,width:794},
+      jsPDF:{unit:'px',format:[794,1123],hotfixes:['px_scaling']}
+    };
+    await html2pdf().set(opt).from(container).save();
+  }catch(e){
+    console.error('PDF generation failed:',e);
+    alert((currentLang==='zh'?'PDF 生成失败：':'PDF generation failed: ')+e.message);
+  }finally{
+    document.body.removeChild(container);
+    if(btn){
+      btn.disabled=false;
+      btn.innerHTML=`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>${currentLang==='zh'?'下载 PDF':'Download PDF'}`;
+    }
+  }
+}
+
+// === Firebase Auth ===
+let currentUser=null;
+
+function showFormMsg(id,msg,type){
+  const el=document.getElementById(id);
+  el.textContent=msg;el.className='form-msg '+type;
+}
+
+async function handleLogin(e){
+  e.preventDefault();
+  const email=document.getElementById('loginEmail').value.trim();
+  const pw=document.getElementById('loginPassword').value;
+  if(!email||!pw){showFormMsg('loginMsg',currentLang==='zh'?'请填写邮箱和密码':'Please enter email and password','error');return false}
+  const btn=document.getElementById('loginSubmitBtn');
+  btn.disabled=true;showFormMsg('loginMsg','','');
+  try{
+    await auth.signInWithEmailAndPassword(email,pw);
+    showFormMsg('loginMsg',currentLang==='zh'?'登录成功！':'Login successful!','success');
+    setTimeout(()=>closeModal('login'),600);
+  }catch(e){
+    const msg=e.code==='auth/user-not-found'?(currentLang==='zh'?'用户不存在':'User not found')
+      :e.code==='auth/wrong-password'?(currentLang==='zh'?'密码错误':'Wrong password')
+      :e.code==='auth/invalid-credential'?(currentLang==='zh'?'邮箱或密码错误':'Invalid email or password')
+      :e.code==='auth/invalid-email'?(currentLang==='zh'?'邮箱格式错误':'Invalid email format')
+      :e.message;
+    showFormMsg('loginMsg',msg,'error');
+  }finally{btn.disabled=false}
+  return false;
+}
+
+async function handleRegister(e){
+  e.preventDefault();
+  const name=document.getElementById('regName').value.trim();
+  const email=document.getElementById('regEmail').value.trim();
+  const pw=document.getElementById('regPassword').value;
+  if(!name||!email||!pw){showFormMsg('regMsg',currentLang==='zh'?'请填写所有字段':'Please fill in all fields','error');return false}
+  if(pw.length<8){showFormMsg('regMsg',currentLang==='zh'?'密码至少 8 位':'Password must be at least 8 characters','error');return false}
+  const btn=document.getElementById('regSubmitBtn');
+  btn.disabled=true;showFormMsg('regMsg','','');
+  try{
+    const cred=await auth.createUserWithEmailAndPassword(email,pw);
+    await cred.user.updateProfile({displayName:name});
+    // Save user profile to Firestore
+    await db.collection('users').doc(cred.user.uid).set({
+      displayName:name,email:email,createdAt:firebase.firestore.FieldValue.serverTimestamp(),
+      lang:currentLang
+    });
+    showFormMsg('regMsg',currentLang==='zh'?'注册成功！':'Registration successful!','success');
+    setTimeout(()=>closeModal('register'),600);
+  }catch(e){
+    const msg=e.code==='auth/email-already-in-use'?(currentLang==='zh'?'该邮箱已注册':'Email already in use')
+      :e.code==='auth/weak-password'?(currentLang==='zh'?'密码强度不够':'Password too weak')
+      :e.code==='auth/invalid-email'?(currentLang==='zh'?'邮箱格式错误':'Invalid email format')
+      :e.message;
+    showFormMsg('regMsg',msg,'error');
+  }finally{btn.disabled=false}
+  return false;
+}
+
+function handleLogout(){
+  auth.signOut();
+}
+
+// Auth state observer
+auth.onAuthStateChanged(async user=>{
+  currentUser=user;
+  const loginBtn=document.getElementById('navLoginBtn');
+  const userEl=document.getElementById('navUser');
+  const nameEl=document.getElementById('navUserName');
+  if(user){
+    loginBtn.style.display='none';
+    userEl.style.display='flex';
+    nameEl.textContent=user.displayName||user.email.split('@')[0];
+    await loadUserData();
+  }else{
+    loginBtn.style.display='';
+    userEl.style.display='none';
+    nameEl.textContent='';
+    userUsage=0;userIsVip=false;userVipExpiry=null;
+  }
+});
+
+// === Firestore History ===
+const FEATURE_NAMES={
+  bio:{zh:'个人简介',en:'Bio'},avatar:{zh:'头像封面',en:'Avatar'},
+  copywriting:{zh:'社交文案',en:'Social Copy'},videoScript:{zh:'视频脚本',en:'Video Script'},
+  emailSig:{zh:'邮件签名',en:'Email Sig'},resumePdf:{zh:'简历美化',en:'Resume'},
+  brandLogo:{zh:'电子签名',en:'E-Signature'},hashtag:{zh:'Hashtag',en:'Hashtag'},
+  calendar:{zh:'内容日历',en:'Calendar'},ipDiagnosis:{zh:'IP诊断',en:'IP Diagnosis'}
+};
+
+async function saveHistory(featureKey,inputSummary,resultText){
+  if(!currentUser) return;
+  try{
+    await db.collection('users').doc(currentUser.uid).collection('history').add({
+      feature:featureKey,
+      featureName:FEATURE_NAMES[featureKey]||{zh:featureKey,en:featureKey},
+      input:inputSummary.substring(0,200),
+      result:resultText.substring(0,1000),
+      lang:currentLang,
+      createdAt:firebase.firestore.FieldValue.serverTimestamp()
+    });
+  }catch(e){console.warn('History save failed:',e)}
+}
+
+function openHistoryModal(){
+  if(!currentUser){openModal('login');return}
+  const el=document.getElementById('historyModal');
+  el.classList.add('show');el.classList.remove('hiding');
+  document.body.style.overflow='hidden';
+  loadHistory();
+}
+function closeHistoryModal(){
+  const el=document.getElementById('historyModal');
+  el.classList.add('hiding');
+  setTimeout(()=>{el.classList.remove('show','hiding');document.body.style.overflow=''},300);
+}
+document.getElementById('historyModal').addEventListener('click',e=>{
+  if(e.target.id==='historyModal') closeHistoryModal();
+});
+
+async function loadHistory(){
+  const list=document.getElementById('historyList');
+  list.innerHTML='<div class="history-empty" style="padding:20px;text-align:center;color:var(--text-secondary)">...</div>';
+  if(!currentUser) return;
+  try{
+    const snap=await db.collection('users').doc(currentUser.uid)
+      .collection('history').orderBy('createdAt','desc').limit(30).get();
+    if(snap.empty){
+      list.innerHTML='<div class="history-empty" data-i18n="history_empty">'+(currentLang==='zh'?'暂无历史记录':'No history yet')+'</div>';
+      return;
+    }
+    list.innerHTML='';
+    snap.forEach(doc=>{
+      const d=doc.data();
+      const name=d.featureName?(d.featureName[currentLang]||d.feature):d.feature;
+      const time=d.createdAt?new Date(d.createdAt.seconds*1000).toLocaleString():'';
+      const item=document.createElement('div');
+      item.className='history-item';
+      item.innerHTML=`<div class="history-item-header"><span class="history-item-title">${name}</span><span class="history-item-time">${time}</span></div><div class="history-item-preview">${(d.result||'').replace(/</g,'&lt;').replace(/\n/g,' ').substring(0,120)}...</div>`;
+      item.onclick=()=>{
+        // Show result in a quick view
+        const content=document.getElementById('fmResultContent');
+        const title=document.getElementById('fmTitle');
+        const desc=document.getElementById('fmDesc');
+        const inputs=document.getElementById('fmInputs');
+        const btn=document.getElementById('fmBtn');
+        const result=document.getElementById('fmResult');
+        title.textContent=name;
+        desc.textContent=(currentLang==='zh'?'输入：':'Input: ')+(d.input||'');
+        inputs.innerHTML='';btn.style.display='none';
+        content.innerHTML='<div>'+cleanMd(d.result).replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>')+'</div>';
+        result.classList.add('show');
+        document.getElementById('fmError').classList.remove('show');
+        closeHistoryModal();
+        currentFeatureKey=null;
+        const fm=document.getElementById('featureModal');
+        fm.classList.add('show');fm.classList.remove('hiding');
+        document.body.style.overflow='hidden';
+      };
+      list.appendChild(item);
+    });
+  }catch(e){
+    list.innerHTML='<div class="history-empty" style="color:#f87171">'+e.message+'</div>';
+  }
+}
+
+// === VIP System ===
+const BSC_RECEIVER='0x754104292463f0a14ae23c79b2d3395d3398cccc';
+const SOL_RECEIVER='8PHJFMp2WDujgs1xQJZtoYVcPPxy6cC5QHoaePaMnHrX';
+const USDT_BSC='0x55d398326f99059fF775485246999027B3197955';
+const USDT_SOL_MINT='Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB';
+const VIP_PRICE=9.9;
+const FREE_LIMIT=10;
+
+let userUsage=0;
+let userIsVip=false;
+let userVipExpiry=null;
+let paymentInitTime=null;
+let selectedChain='bsc';
+
+async function loadUserData(){
+  if(!currentUser) return;
+  try{
+    const doc=await db.collection('users').doc(currentUser.uid).get();
+    if(doc.exists){
+      const d=doc.data();
+      userUsage=d.usageCount||0;
+      userIsVip=d.isVip||false;
+      userVipExpiry=d.vipExpiry||null;
+      if(userIsVip && userVipExpiry){
+        const expDate=userVipExpiry.toDate?userVipExpiry.toDate():new Date(userVipExpiry);
+        if(expDate<=new Date()){
+          userIsVip=false;
+          await db.collection('users').doc(currentUser.uid).update({isVip:false});
+        }
+      }
+      updateVipBadge();
+    }
+  }catch(e){console.warn('loadUserData:',e)}
+}
+
+function updateVipBadge(){
+  const nameEl=document.getElementById('navUserName');
+  if(!nameEl||!currentUser) return;
+  const displayName=currentUser.displayName||currentUser.email.split('@')[0];
+  if(userIsVip){
+    nameEl.innerHTML=displayName+' <span class="vip-badge">VIP</span>';
+  }else{
+    nameEl.textContent=displayName;
+  }
+}
+
+async function checkUsageLimit(){
+  if(!currentUser){
+    openModal('login');
+    return false;
+  }
+  if(userIsVip){
+    const expDate=userVipExpiry?.toDate?userVipExpiry.toDate():userVipExpiry?new Date(userVipExpiry):null;
+    if(expDate && expDate>new Date()) return true;
+    userIsVip=false;
+  }
+  if(userUsage>=FREE_LIMIT){
+    openVipModal();
+    return false;
+  }
+  return true;
+}
+
+async function incrementUsage(){
+  if(!currentUser||userIsVip) return;
+  userUsage++;
+  try{
+    await db.collection('users').doc(currentUser.uid).update({
+      usageCount:firebase.firestore.FieldValue.increment(1)
+    });
+  }catch(e){console.warn('incrementUsage:',e)}
+}
+
+// --- VIP Modal ---
+function openVipModal(){
+  const el=document.getElementById('vipModal');
+  const lang=currentLang;
+  document.getElementById('vipTitle').textContent=lang==='zh'?'免费次数已用完':'Free Usage Limit Reached';
+  document.getElementById('vipDesc').textContent=lang==='zh'?'开通 VIP 无限使用所有功能':'Upgrade to VIP for unlimited access';
+  document.getElementById('vipUsageInfo').innerHTML=lang==='zh'
+    ?'已使用 <strong>'+userUsage+'/'+FREE_LIMIT+'</strong> 次免费额度'
+    :'Used <strong>'+userUsage+'/'+FREE_LIMIT+'</strong> free credits';
+  document.getElementById('vipPriceSub').textContent=lang==='zh'?'/ 月 · USDT 支付':'/ month · Pay with USDT';
+  document.getElementById('payStatus').textContent='';
+  document.getElementById('payStatus').className='pay-status';
+  selectedChain='bsc';
+  document.querySelectorAll('.chain-tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById('chainBsc').classList.add('active');
+  updateWalletUI();
+  el.classList.add('show');el.classList.remove('hiding');
+  document.body.style.overflow='hidden';
+}
+
+function closeVipModal(){
+  const el=document.getElementById('vipModal');
+  el.classList.add('hiding');
+  setTimeout(()=>{el.classList.remove('show','hiding');document.body.style.overflow=''},300);
+}
+document.getElementById('vipModal').addEventListener('click',e=>{
+  if(e.target.id==='vipModal') closeVipModal();
+});
+
+function selectChain(chain,el){
+  selectedChain=chain;
+  document.querySelectorAll('.chain-tab').forEach(t=>t.classList.remove('active'));
+  el.classList.add('active');
+  updateWalletUI();
+}
+
+function detectWallets(){
+  return{okx:!!window.okxwallet, tp:!!window.tokenpocket};
+}
+
+function updateWalletUI(){
+  const wallets=detectWallets();
+  const hasWallet=wallets.okx||wallets.tp;
+  const btnsEl=document.getElementById('walletBtns');
+  const addrBox=document.getElementById('payAddressBox');
+  const paidBtn=document.getElementById('paidBtn');
+  const lang=currentLang;
+  btnsEl.innerHTML='';
+
+  if(hasWallet){
+    if(wallets.okx){
+      const btn=document.createElement('button');btn.className='wallet-btn';
+      btn.innerHTML='🟢 OKX Wallet — '+(lang==='zh'?'立即支付':'Pay Now');
+      btn.onclick=()=>payWithWallet('okx');
+      btnsEl.appendChild(btn);
+    }
+    if(wallets.tp){
+      const btn=document.createElement('button');btn.className='wallet-btn';
+      btn.innerHTML='🔵 TokenPocket — '+(lang==='zh'?'立即支付':'Pay Now');
+      btn.onclick=()=>payWithWallet('tp');
+      btnsEl.appendChild(btn);
+    }
+    addrBox.classList.remove('show');
+    paidBtn.classList.remove('show');
+  }else{
+    const addr=selectedChain==='bsc'?BSC_RECEIVER:SOL_RECEIVER;
+    const chainLabel=selectedChain==='bsc'?'BSC (BEP-20)':'Solana (SPL)';
+    document.getElementById('payAddressLabel').textContent=(lang==='zh'?'USDT 收款地址（':'USDT Address (')+chainLabel+(lang==='zh'?'）：':'):');
+    document.getElementById('payAddress').textContent=addr;
+    addrBox.classList.add('show');
+    paidBtn.classList.add('show');
+    paidBtn.textContent=lang==='zh'?'我已支付':'I\'ve Paid';
+    paidBtn.disabled=false;
+    paymentInitTime=Date.now();
+  }
+}
+
+// --- Wallet Payment ---
+async function payWithWallet(walletType){
+  const statusEl=document.getElementById('payStatus');
+  const lang=currentLang;
+  statusEl.textContent=lang==='zh'?'正在连接钱包...':'Connecting wallet...';
+  statusEl.className='pay-status checking';
+  paymentInitTime=Date.now();
+  try{
+    if(selectedChain==='bsc'){
+      await payBSCViaWallet(walletType);
+    }else{
+      await paySolViaWallet(walletType);
+    }
+    statusEl.textContent=lang==='zh'?'交易已发送，正在确认...':'Transaction sent, confirming...';
+    setTimeout(()=>verifyPayment(),8000);
+  }catch(e){
+    statusEl.textContent=(lang==='zh'?'支付失败：':'Payment failed: ')+(e.message||e);
+    statusEl.className='pay-status error';
+  }
+}
+
+async function payBSCViaWallet(walletType){
+  const provider=walletType==='okx'?window.okxwallet:window.tokenpocket?.ethereum;
+  if(!provider) throw new Error('Wallet not found');
+  const accounts=await provider.request({method:'eth_requestAccounts'});
+  try{
+    await provider.request({method:'wallet_switchEthereumChain',params:[{chainId:'0x38'}]});
+  }catch(e){
+    if(e.code===4902){
+      await provider.request({method:'wallet_addEthereumChain',params:[{
+        chainId:'0x38',chainName:'BNB Smart Chain',
+        nativeCurrency:{name:'BNB',symbol:'BNB',decimals:18},
+        rpcUrls:['https://bsc-dataseed.binance.org/'],
+        blockExplorerUrls:['https://bscscan.com/']
+      }]});
+    }else throw e;
+  }
+  const amountHex=BigInt('9900000000000000000').toString(16).padStart(64,'0');
+  const toHex=BSC_RECEIVER.slice(2).toLowerCase().padStart(64,'0');
+  const data='0xa9059cbb'+toHex+amountHex;
+  return await provider.request({
+    method:'eth_sendTransaction',
+    params:[{from:accounts[0],to:USDT_BSC,data:data,value:'0x0'}]
+  });
+}
+
+async function paySolViaWallet(walletType){
+  if(typeof solanaWeb3==='undefined') throw new Error(currentLang==='zh'?'Solana 库未加载，请刷新重试':'Solana library not loaded');
+  const provider=walletType==='okx'?window.okxwallet?.solana:(window.tokenpocket?.solana||window.solana);
+  if(!provider) throw new Error('Solana wallet not found');
+  await provider.connect();
+  const senderPubkey=provider.publicKey;
+  const mintPubkey=new solanaWeb3.PublicKey(USDT_SOL_MINT);
+  const receiverPubkey=new solanaWeb3.PublicKey(SOL_RECEIVER);
+  const TOKEN_PROGRAM_ID=new solanaWeb3.PublicKey('TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA');
+  const ASSOC_TOKEN_PROGRAM_ID=new solanaWeb3.PublicKey('ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL');
+  const [senderATA]=solanaWeb3.PublicKey.findProgramAddressSync(
+    [senderPubkey.toBuffer(),TOKEN_PROGRAM_ID.toBuffer(),mintPubkey.toBuffer()],ASSOC_TOKEN_PROGRAM_ID
+  );
+  const [receiverATA]=solanaWeb3.PublicKey.findProgramAddressSync(
+    [receiverPubkey.toBuffer(),TOKEN_PROGRAM_ID.toBuffer(),mintPubkey.toBuffer()],ASSOC_TOKEN_PROGRAM_ID
+  );
+  const amount=BigInt(Math.round(VIP_PRICE*1e6));
+  const dataArr=new Uint8Array(9);
+  dataArr[0]=3;
+  const buf=new ArrayBuffer(8);
+  new DataView(buf).setBigUint64(0,amount,true);
+  dataArr.set(new Uint8Array(buf),1);
+  const ix=new solanaWeb3.TransactionInstruction({
+    keys:[
+      {pubkey:senderATA,isSigner:false,isWritable:true},
+      {pubkey:receiverATA,isSigner:false,isWritable:true},
+      {pubkey:senderPubkey,isSigner:true,isWritable:false}
+    ],
+    programId:TOKEN_PROGRAM_ID,data:dataArr
+  });
+  const connection=new solanaWeb3.Connection('https://api.mainnet-beta.solana.com','confirmed');
+  const {blockhash}=await connection.getLatestBlockhash();
+  const tx=new solanaWeb3.Transaction().add(ix);
+  tx.feePayer=senderPubkey;
+  tx.recentBlockhash=blockhash;
+  const signed=await provider.signAndSendTransaction(tx);
+  return signed.signature;
+}
+
+// --- Manual "I've Paid" ---
+async function handlePaidClick(){
+  const btn=document.getElementById('paidBtn');
+  const statusEl=document.getElementById('payStatus');
+  const lang=currentLang;
+  btn.disabled=true;
+  btn.textContent=lang==='zh'?'验证中...':'Verifying...';
+  statusEl.textContent=lang==='zh'?'正在查询链上交易...':'Checking on-chain transactions...';
+  statusEl.className='pay-status checking';
+  try{
+    const verified=await verifyPayment();
+    if(!verified){
+      statusEl.textContent=lang==='zh'?'未支付，请完成转账后再试':'Unpaid, please complete the transfer and try again';
+      statusEl.className='pay-status error';
+      btn.disabled=false;
+      btn.textContent=lang==='zh'?'我已支付':'I\'ve Paid';
+    }
+  }catch(e){
+    statusEl.textContent=(lang==='zh'?'验证失败：':'Verification failed: ')+(e.message||e);
+    statusEl.className='pay-status error';
+    btn.disabled=false;
+    btn.textContent=lang==='zh'?'我已支付':'I\'ve Paid';
+  }
+}
+
+// --- On-chain Verification ---
+async function verifyPayment(){
+  const statusEl=document.getElementById('payStatus');
+  const lang=currentLang;
+  let verified=false;
+  if(selectedChain==='bsc'){
+    verified=await verifyBSCPayment();
+  }else{
+    verified=await verifySolPayment();
+  }
+  if(verified){
+    statusEl.textContent=lang==='zh'?'支付成功！正在升级 VIP...':'Payment verified! Upgrading to VIP...';
+    statusEl.className='pay-status success';
+    await upgradeToVip();
+    setTimeout(()=>{
+      closeVipModal();
+      alert(lang==='zh'?'恭喜！你已成为 VIP 会员，所有功能无限使用':'Congratulations! You are now a VIP member with unlimited access');
+    },1200);
+    return true;
+  }
+  return false;
+}
+
+async function verifyBSCPayment(){
+  try{
+    const url='https://api.bscscan.com/api?module=account&action=tokentx&contractaddress='+USDT_BSC+'&address='+BSC_RECEIVER+'&page=1&offset=10&sort=desc';
+    const resp=await fetch(url);
+    const data=await resp.json();
+    if(data.status!=='1'||!data.result) return false;
+    const cutoff=Math.floor((paymentInitTime||Date.now()-300000)/1000);
+    for(const tx of data.result){
+      const ts=parseInt(tx.timeStamp);
+      const value=parseFloat(tx.value)/1e18;
+      if(ts>=cutoff && value>=VIP_PRICE-0.01 && tx.to.toLowerCase()===BSC_RECEIVER.toLowerCase()){
+        return true;
+      }
+    }
+    return false;
+  }catch(e){console.warn('BSC verify:',e);return false}
+}
+
+async function verifySolPayment(){
+  try{
+    const resp=await fetch('https://api.mainnet-beta.solana.com',{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({jsonrpc:'2.0',id:1,method:'getSignaturesForAddress',params:[SOL_RECEIVER,{limit:10}]})
+    });
+    const data=await resp.json();
+    if(!data.result||!data.result.length) return false;
+    const cutoff=Math.floor((paymentInitTime||Date.now()-300000)/1000);
+    for(const sig of data.result){
+      if(sig.blockTime && sig.blockTime>=cutoff && !sig.err){
+        const txResp=await fetch('https://api.mainnet-beta.solana.com',{
+          method:'POST',headers:{'Content-Type':'application/json'},
+          body:JSON.stringify({jsonrpc:'2.0',id:1,method:'getTransaction',params:[sig.signature,{encoding:'jsonParsed',maxSupportedTransactionVersion:0}]})
+        });
+        const txData=await txResp.json();
+        const meta=txData.result?.meta;
+        if(meta && meta.postTokenBalances){
+          for(const bal of meta.postTokenBalances){
+            if(bal.mint===USDT_SOL_MINT) return true;
+          }
+        }
+      }
+    }
+    return false;
+  }catch(e){console.warn('SOL verify:',e);return false}
+}
+
+// --- VIP Upgrade ---
+async function upgradeToVip(){
+  if(!currentUser) return;
+  const expiry=new Date();
+  expiry.setDate(expiry.getDate()+30);
+  userIsVip=true;
+  userVipExpiry=expiry;
+  try{
+    await db.collection('users').doc(currentUser.uid).update({
+      isVip:true,
+      vipExpiry:firebase.firestore.Timestamp.fromDate(expiry),
+      vipActivatedAt:firebase.firestore.FieldValue.serverTimestamp(),
+      vipChain:selectedChain
+    });
+    updateVipBadge();
+  }catch(e){console.warn('VIP upgrade failed:',e)}
+}
+</script>
+</body>
+</html>
